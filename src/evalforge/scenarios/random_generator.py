@@ -1,0 +1,111 @@
+"""Failure-feedback-free offline random scenario generation."""
+
+from __future__ import annotations
+
+from collections import Counter
+from typing import Protocol
+
+from pydantic import BaseModel, Field
+
+from evalforge.domain.scenario import ScenarioSpec, SourceMethod
+from evalforge.scenarios.fingerprint import fingerprint
+from evalforge.scenarios.manual import FAMILIES, build_manual_scenario
+from evalforge.scenarios.validator import ScenarioValidator
+
+
+class ScenarioProposer(Protocol):
+    """Schema-only scenario proposal boundary."""
+
+    def propose(self, attempt: int, seed: int) -> ScenarioSpec:
+        """Return a complete data-only ScenarioSpec proposal."""
+
+
+class GenerationStats(BaseModel):
+    """Generation attempts and common-validator rejection accounting."""
+
+    attempted: int = 0
+    accepted: int = 0
+    rejected: int = 0
+    duplicates: int = 0
+    rejection_reasons: dict[str, int] = Field(default_factory=dict)
+
+    @property
+    def validation_rate(self) -> float:
+        """Accepted proposals divided by nonduplicate attempts."""
+
+        denominator = self.attempted - self.duplicates
+        return self.accepted / denominator if denominator else 0.0
+
+
+class GenerationResult(BaseModel):
+    """Accepted scenarios plus transparent generation accounting."""
+
+    accepted: list[ScenarioSpec]
+    stats: GenerationStats
+
+
+class ProgrammaticProposer:
+    """Deterministic offline proposer spanning curated behavioral templates."""
+
+    def propose(self, attempt: int, seed: int) -> ScenarioSpec:
+        """Build one data-only proposal without any tested-agent feedback."""
+
+        family = FAMILIES[attempt % len(FAMILIES)]
+        variant = (attempt // len(FAMILIES)) % 5
+        scenario = build_manual_scenario(family, variant)
+        scenario.scenario_id = f"random_{seed}_{attempt:04d}"
+        scenario.title = f"Programmatic random proposal {attempt}"
+        scenario.seed = seed * 10_000 + attempt
+        scenario.source_method = SourceMethod.RANDOM
+        scenario.tags = [family, "programmatic_random", f"variant_{variant}"]
+        scenario.metadata = {
+            "proposer": "programmatic",
+            "attempt": attempt,
+            "generator_seed": seed,
+        }
+        return scenario
+
+
+class RandomScenarioGenerator:
+    """Validate and deduplicate failure-blind scenario proposals."""
+
+    def __init__(self, proposer: ScenarioProposer):
+        self.proposer = proposer
+
+    def generate(
+        self,
+        count: int,
+        seed: int,
+        existing_fingerprints: set[str] | None = None,
+    ) -> GenerationResult:
+        """Generate exactly `count` accepted valid scenarios when feasible."""
+
+        known = set(existing_fingerprints or set())
+        accepted: list[ScenarioSpec] = []
+        reasons: Counter[str] = Counter()
+        attempted = rejected = duplicates = 0
+        max_attempts = max(count * 30, 30)
+        while len(accepted) < count and attempted < max_attempts:
+            proposal = self.proposer.propose(attempted, seed)
+            attempted += 1
+            proposal_fingerprint = fingerprint(proposal)
+            if proposal_fingerprint in known:
+                duplicates += 1
+                continue
+            validation = ScenarioValidator().validate(proposal)
+            if not validation.valid:
+                rejected += 1
+                reasons.update(validation.codes)
+                continue
+            known.add(proposal_fingerprint)
+            accepted.append(proposal)
+        return GenerationResult(
+            accepted=accepted,
+            stats=GenerationStats(
+                attempted=attempted,
+                accepted=len(accepted),
+                rejected=rejected,
+                duplicates=duplicates,
+                rejection_reasons=dict(sorted(reasons.items())),
+            ),
+        )

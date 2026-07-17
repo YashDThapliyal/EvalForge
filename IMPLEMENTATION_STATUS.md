@@ -31,3 +31,9 @@ Work began 2026-07-17. Exact phase gates and final command results are recorded 
 - Red test: verification tests failed during collection because verifier components did not exist.
 - Implemented independent outcome, invariant, trace-policy, claim-grounding, and runtime verifiers; all 17 required failure codes; stable behavioral signatures; and persisted verification/failure artifacts.
 - Gate: targeted tests (7 passed), full suite (29 passed), Ruff, and strict mypy — passed.
+
+## Phase 5 — scenario generation
+
+- Red test: generator tests failed during collection because random/failure-directed coordinators did not exist.
+- Implemented the failure-blind offline proposer, common validation/deduplication accounting, all 10 bounded mutation families, validated lineage-preserving child generation, and both CLI generation modes.
+- Gate: targeted tests (4 passed), offline CLI generated 12/12 valid scenarios in 12 attempts, full suite (33 passed), Ruff, and strict mypy — passed.

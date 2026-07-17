@@ -6,9 +6,14 @@ from typing import Annotated
 import typer
 
 from evalforge.agents.scripted import ScriptedBaselineAgent
+from evalforge.execution.artifacts import atomic_write
 from evalforge.execution.episode import run_episode
-from evalforge.scenarios.loader import load_scenario, load_scenarios
+from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
+from evalforge.scenarios.loader import load_scenario, load_scenarios, write_scenario
+from evalforge.scenarios.random_generator import ProgrammaticProposer, RandomScenarioGenerator
 from evalforge.scenarios.validator import ScenarioValidator
+from evalforge.serialization import canonical_json
+from evalforge.verification.taxonomy import FailureRecord
 
 app = typer.Typer(
     name="evalforge",
@@ -59,6 +64,49 @@ def run_command(
     typer.echo(
         f"Episode {result.episode_id}: {result.runtime_status}; "
         f"{len(result.events)} tool call(s); artifacts: {output}"
+    )
+
+
+@app.command("generate")
+def generate_command(
+    method: Annotated[str, typer.Option("--method")],
+    count: Annotated[int, typer.Option("--count")],
+    seed: Annotated[int, typer.Option("--seed")] = 7,
+    output: Annotated[Path, typer.Option("--output")] = Path("artifacts/generated"),
+    failures: Annotated[Path | None, typer.Option("--failures")] = None,
+) -> None:
+    """Generate validated scenarios using an offline proposer."""
+
+    if method == "random":
+        result = RandomScenarioGenerator(ProgrammaticProposer()).generate(count=count, seed=seed)
+    elif method == "failure-directed":
+        if failures is None:
+            typer.echo("--failures is required for failure-directed generation", err=True)
+            raise typer.Exit(1)
+        failure_paths = sorted(failures.rglob("failure.json"))
+        if not failure_paths:
+            typer.echo(f"No failure.json artifacts found under {failures}", err=True)
+            raise typer.Exit(1)
+        failure_path = failure_paths[0]
+        failure = FailureRecord.model_validate_json(failure_path.read_text(encoding="utf-8"))
+        parent = load_scenario(failure_path.parent / "scenario.yaml")
+        result = FailureDirectedScenarioGenerator().generate(
+            parent, failure, count=count, seed=seed
+        )
+    else:
+        typer.echo(f"Unsupported generation method: {method}", err=True)
+        raise typer.Exit(1)
+    if len(result.accepted) != count:
+        typer.echo(
+            f"Generated only {len(result.accepted)}/{count}; inspect rejection statistics", err=True
+        )
+        raise typer.Exit(1)
+    for scenario_item in result.accepted:
+        write_scenario(output / f"{scenario_item.scenario_id}.yaml", scenario_item)
+    atomic_write(output / "generation_stats.json", canonical_json(result.stats) + "\n")
+    typer.echo(
+        f"Generated {len(result.accepted)} valid {method} scenario(s); "
+        f"attempted {result.stats.attempted}; output: {output}"
     )
 
 
