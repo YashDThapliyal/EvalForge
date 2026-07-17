@@ -22,6 +22,7 @@ class ExperimentConfig(BaseModel):
     output_dir: str = "artifacts"
     random_proposer: str = "programmatic"
     failure_directed_proposer: str = "programmatic"
+    manual_selection_strategy: str = "stratified-v1"
     input_cost_per_million: float | None = Field(default=None, ge=0)
     cached_input_cost_per_million: float | None = Field(default=None, ge=0)
     cache_write_cost_per_million: float | None = Field(default=None, ge=0)

@@ -25,6 +25,16 @@ def test_equal_budget_deterministic_offline_experiment(tmp_path: Path) -> None:
         (first.artifact_dir / "config.resolved.yaml").read_text(encoding="utf-8")
     )
     assert resolved["seed"] == 7
+    manual_families = {str(item.metadata["family"]) for item in first.scenario_order["manual"]}
+    assert len(manual_families) == 3
+
+
+def test_quick_manual_budget_is_stratified_across_all_families(tmp_path: Path) -> None:
+    result = ExperimentRunner(
+        ExperimentConfig(seed=7, scenarios_per_source=12, output_dir=str(tmp_path))
+    ).run()
+    families = [str(item.metadata["family"]) for item in result.scenario_order["manual"]]
+    assert len(set(families[:10])) == 10
 
 
 def test_failure_directed_lineage_uses_only_prior_own_run_failures(tmp_path: Path) -> None:

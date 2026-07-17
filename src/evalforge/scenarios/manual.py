@@ -100,6 +100,9 @@ def build_manual_scenario(family: str, variant: int) -> ScenarioSpec:
             )
     elif family == "incorrect_config":
         world.services[service_id].config["timeout"] = 5 + variant
+        world.logs[service_id].append(
+            f"ERROR configuration validation: timeout expected 30, observed {5 + variant}"
+        )
         actions = [
             OracleAction(
                 tool_name="update_config",

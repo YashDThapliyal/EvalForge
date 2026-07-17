@@ -19,7 +19,7 @@ from evalforge.execution.episode import EpisodeResult, run_episode
 from evalforge.reporting.metrics import ExperimentMetrics, SourceMetrics, compute_source_metrics
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
 from evalforge.scenarios.loader import load_scenarios, write_scenario
-from evalforge.scenarios.manual import build_manual_scenario
+from evalforge.scenarios.manual import FAMILIES, build_manual_scenario
 from evalforge.scenarios.random_generator import (
     GenerationStats,
     ProgrammaticProposer,
@@ -63,7 +63,7 @@ class ExperimentRunner:
             yaml.safe_dump(self.config.model_dump(mode="json"), sort_keys=False),
         )
         budget = self.config.scenarios_per_source
-        manual = load_scenarios(Path("scenarios/manual"))[:budget]
+        manual = self._select_manual(load_scenarios(Path("scenarios/manual")), budget)
         manual_stats = GenerationStats(attempted=budget, accepted=len(manual))
         random_result = RandomScenarioGenerator(ProgrammaticProposer()).generate(
             count=budget, seed=self.config.seed
@@ -135,6 +135,35 @@ class ExperimentRunner:
             scenario_order=scenario_order,
             generation_stats=generation_stats,
         )
+
+    def _select_manual(self, scenarios: list[ScenarioSpec], budget: int) -> list[ScenarioSpec]:
+        """Select reviewed scenarios round-robin by family for meaningful quick coverage."""
+
+        if self.config.manual_selection_strategy != "stratified-v1":
+            raise ValueError(
+                f"Unsupported manual selection strategy: {self.config.manual_selection_strategy}"
+            )
+        by_family = {
+            family: [
+                scenario for scenario in scenarios if scenario.metadata.get("family") == family
+            ]
+            for family in FAMILIES
+        }
+        selected: list[ScenarioSpec] = []
+        round_index = 0
+        while len(selected) < budget:
+            added = False
+            for family in FAMILIES:
+                family_scenarios = by_family[family]
+                if round_index < len(family_scenarios):
+                    selected.append(family_scenarios[round_index])
+                    added = True
+                    if len(selected) == budget:
+                        return selected
+            if not added:
+                break
+            round_index += 1
+        return selected
 
     def _run_source(
         self, root: Path, source: str, scenarios: list[ScenarioSpec]
@@ -236,6 +265,7 @@ class ExperimentRunner:
             if (
                 existing.scenario_id == scenario.scenario_id
                 and existing.public_request.model_dump() == scenario.public_view().model_dump()
+                and existing.starting_world == scenario.initial_world
                 and existing.agent_model == self.config.model
                 and existing.runtime_status == "valid"
             ):

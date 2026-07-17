@@ -78,3 +78,11 @@ def test_fingerprints_ignore_superficial_metadata_but_detect_structure() -> None
     assert near_fingerprint(first) == near_fingerprint(second)
     result = ScenarioValidator(existing_fingerprints={fingerprint(first)}).validate(second)
     assert "DUPLICATE_FINGERPRINT" in result.codes
+
+
+def test_incorrect_config_has_agent_visible_diagnostic_evidence() -> None:
+    scenario = build_manual_scenario("incorrect_config", 2)
+    logs = "\n".join(scenario.initial_world.logs["identity-api"])
+    assert "timeout" in logs
+    assert "expected 30" in logs
+    assert "observed 7" in logs
