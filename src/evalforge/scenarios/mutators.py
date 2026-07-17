@@ -6,14 +6,7 @@ from evalforge.domain.scenario import ScenarioSpec
 from evalforge.domain.world import MonitoringObservation
 
 OPERATORS = (
-    "change_service_names",
     "add_distractor_service",
-    "alter_permissions",
-    "change_fault_observation_mode",
-    "move_failure_to_different_tool",
-    "make_operation_non_idempotent",
-    "add_conflicting_monitoring_evidence",
-    "change_confirmation_mode",
     "vary_root_cause",
     "combine_primary_secondary",
 )

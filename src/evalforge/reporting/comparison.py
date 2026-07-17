@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
@@ -104,6 +105,10 @@ def generate_model_comparison(experiments: list[Path], output: Path) -> Comparis
 <table><thead><tr><th>Model</th><th>Episodes</th><th>Task success</th><th>Stress success</th><th>Unique failures</th><th>Weighted discoveries</th><th>FD children</th><th>Input tokens</th><th>Output tokens</th><th>API calls</th><th>Estimated cost</th><th>Agent runtime errors</th></tr></thead><tbody>
 {% for row in artifact.models %}<tr><td>{{ row.agent }} / {{ row.model }}</td><td>{{ row.evaluated_episodes }}</td><td>{{ '%.1f%%'|format(row.task_success_rate * 100) }}</td><td>{{ '%.1f%%'|format(row.stress_test_success_rate * 100) }}</td><td>{{ row.unique_failure_signatures }}</td><td>{{ row.severity_weighted_discoveries }}</td><td>{{ row.failure_directed_children }}</td><td>{{ row.input_tokens }}</td><td>{{ row.output_tokens }}</td><td>{{ row.provider_api_calls }}</td><td>${{ '%.4f'|format(row.estimated_cost_usd) }}</td><td>{{ row.runtime_error_episodes }}</td></tr>{% endfor %}
 </tbody></table>
+<h2>Runtime-error sensitivity</h2><p>Infrastructure-excluded rates remove provider/API failures only. Model protocol failures remain model failures.</p>
+<table><thead><tr><th>Model</th><th>Infrastructure errors</th><th>Protocol errors</th><th>Task raw</th><th>Task excluding infrastructure</th><th>Stress raw</th><th>Stress excluding infrastructure</th></tr></thead><tbody>
+{% for row in artifact.models %}<tr><td>{{ row.agent }} / {{ row.model }}</td><td>{{ row.infrastructure_error_episodes }}</td><td>{{ row.protocol_error_episodes }}</td><td>{{ '%.1f%%'|format(row.task_success_rate * 100) }}</td><td>{{ '%.1f%%'|format(row.task_success_rate_excluding_infrastructure_errors * 100) }}</td><td>{{ '%.1f%%'|format(row.stress_test_success_rate * 100) }}</td><td>{{ '%.1f%%'|format(row.stress_test_success_rate_excluding_infrastructure_errors * 100) }}</td></tr>{% endfor %}
+</tbody></table>
 <h2>Source-level discovery comparison</h2><table><thead><tr><th>Source</th><th>Success</th><th>Unique signatures</th><th>Weighted discoveries</th></tr></thead><tbody>
 {% for row in artifact.sources %}<tr><td>{{ row.source }}</td><td>{{ '%.1f%%'|format(row.stress_test_success_rate * 100) }}</td><td>{{ row.unique_failure_signatures }}</td><td>{{ row.severity_weighted_discoveries }}</td></tr>{% endfor %}
 </tbody></table><h2>Method</h2><pre>{{ markdown }}</pre></body></html>"""
@@ -188,7 +193,7 @@ def _aggregate(experiment: Path) -> ModelComparisonMetrics:
             eligible_stress_successes / eligible if eligible else 0.0
         ),
         failure_directed_children=directed_children,
-        artifact_dir=str(experiment.resolve()),
+        artifact_dir=Path(os.path.relpath(experiment, Path.cwd())).as_posix(),
     )
 
 
@@ -325,10 +330,12 @@ def _markdown(artifact: ModelComparisonArtifact) -> str:
             "",
             "## Method",
             "",
-            "Each model received the same public scenario tasks and strict tool schemas. Hidden "
-            "faults, actual outcomes, oracle plans, and verifier predicates were not provided. "
-            "The comparison uses equal accepted scenario budgets and deterministic verification; "
-            "invalid generated scenarios do not consume the evaluation budget.",
+            "Every model received the same public interface and matched manual and random "
+            "scenarios. Failure-directed scenarios are model-specific because each adaptive arm "
+            "uses only that model's earlier failures. Hidden faults, actual outcomes, oracle "
+            "plans, and verifier predicates were not provided. The comparison uses equal "
+            "accepted scenario budgets and deterministic verification; invalid generated "
+            "scenarios do not consume the evaluation budget.",
             "",
             "Costs are estimates from recorded provider token usage and the explicit rates saved "
             "in each resolved experiment configuration.",

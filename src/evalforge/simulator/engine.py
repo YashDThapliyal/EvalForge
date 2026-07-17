@@ -100,6 +100,13 @@ class Simulator:
                 )
             else:
                 actual, side_effect_id = self._transitions[tool_name](actor_id, arguments, call_id)
+                if any(fault.kind is FaultKind.PARTIAL_SIDE_EFFECT for fault in applied):
+                    actual = actual.model_copy(
+                        update={
+                            "status": OutcomeStatus.PARTIAL,
+                            "message": f"Partial side effect: {actual.message}",
+                        }
+                    )
         observation = self._visible_observation(actual, applied)
         after_hash = world_hash(self.world)
         event = ToolEvent(

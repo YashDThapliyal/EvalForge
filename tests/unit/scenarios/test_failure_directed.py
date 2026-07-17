@@ -12,14 +12,7 @@ from evalforge.scenarios.validator import ScenarioValidator
 
 def test_all_bounded_mutation_operator_families_are_declared() -> None:
     assert set(mutation_operator_names()) == {
-        "change_service_names",
         "add_distractor_service",
-        "alter_permissions",
-        "change_fault_observation_mode",
-        "move_failure_to_different_tool",
-        "make_operation_non_idempotent",
-        "add_conflicting_monitoring_evidence",
-        "change_confirmation_mode",
         "vary_root_cause",
         "combine_primary_secondary",
     }
@@ -48,6 +41,12 @@ def test_failure_directed_children_are_valid_material_deterministic_descendants(
     first = FailureDirectedScenarioGenerator().generate(parent, episode.failure, count=6, seed=17)
     second = FailureDirectedScenarioGenerator().generate(parent, episode.failure, count=6, seed=17)
     assert first.stats.accepted == 6
+    observed = {
+        str(mutation)
+        for child in first.accepted
+        for mutation in child.metadata["mutations"]  # type: ignore[union-attr]
+    }
+    assert observed == set(mutation_operator_names())
     assert [fingerprint(item) for item in first.accepted] == [
         fingerprint(item) for item in second.accepted
     ]

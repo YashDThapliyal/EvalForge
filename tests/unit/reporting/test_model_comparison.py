@@ -42,6 +42,7 @@ def test_model_comparison_is_generated_from_real_episode_artifacts(tmp_path: Pat
     assert "FD children" in result.markdown
     assert "## Runtime-error sensitivity" in result.markdown
     assert "## Source-level discovery comparison" in result.markdown
+    assert "Failure-directed scenarios are model-specific" in result.markdown
     assert (output / "report.html").exists()
     payload = json.loads((output / "comparison.json").read_text(encoding="utf-8"))
     assert len(payload["models"]) == 2
@@ -60,3 +61,7 @@ def test_model_comparison_is_generated_from_real_episode_artifacts(tmp_path: Pat
     assert all(item["evaluated_episodes"] == 2 for item in payload["sources"])
     assert all("unique_failure_signatures" in item for item in payload["sources"])
     assert all("severity_weighted_discoveries" in item for item in payload["sources"])
+    assert all(not Path(item["artifact_dir"]).is_absolute() for item in payload["models"])
+    html = (output / "report.html").read_text(encoding="utf-8")
+    assert "<th>Infrastructure errors</th>" in html
+    assert "<th>Protocol errors</th>" in html

@@ -5,9 +5,12 @@ from types import SimpleNamespace
 
 import yaml
 
+from evalforge.agents.base import AgentFinal, AgentRequest, ToolRegistry
+from evalforge.agents.openai_agent import AgentProtocolError
 from evalforge.config import ExperimentConfig
 from evalforge.execution.experiment import ExperimentRunner
 from evalforge.scenarios.loader import write_scenario
+from evalforge.scenarios.manual import build_manual_scenario
 from tests.support import (
     LIVE_CONFIG_FIELDS,
     FixtureScenarioProposer,
@@ -114,3 +117,44 @@ def test_experiment_can_reuse_one_validated_random_corpus_across_models(
     assert [scenario.scenario_id for scenario in result.scenario_order["random"]] == [
         proposer.propose(attempt, 7).scenario_id for attempt in range(3)
     ]
+
+
+def test_resume_preserves_model_protocol_failure_without_selective_resampling(
+    tmp_path: Path,
+) -> None:
+    class ProtocolFailureAgent:
+        provider = "openai"
+        model = "test-live-model"
+
+        def run(self, request: AgentRequest, tools: ToolRegistry) -> AgentFinal:
+            del request, tools
+            raise AgentProtocolError("malformed final output: submit_final was not called")
+
+    calls = 0
+
+    class ReplacementAgent:
+        provider = "openai"
+        model = "test-live-model"
+
+        def run(self, request: AgentRequest, tools: ToolRegistry) -> AgentFinal:
+            nonlocal calls
+            del request, tools
+            calls += 1
+            return AgentFinal(status="not_resolved", summary="replacement", claims=[])
+
+    config = ExperimentConfig(
+        seed=7,
+        scenarios_per_source=1,
+        output_dir=str(tmp_path),
+        **LIVE_CONFIG_FIELDS,  # type: ignore[arg-type]
+    )
+    scenario = build_manual_scenario("bad_deployment", 0)
+    first = ExperimentRunner(config, agent_factory=ProtocolFailureAgent)._run_or_resume(
+        tmp_path, scenario, "protocol-error"
+    )
+    second = ExperimentRunner(config, agent_factory=ReplacementAgent)._run_or_resume(
+        tmp_path, scenario, "protocol-error"
+    )
+
+    assert first.runtime_errors == second.runtime_errors
+    assert calls == 0

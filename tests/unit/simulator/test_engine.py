@@ -131,6 +131,29 @@ def test_faults_separate_actual_outcome_from_observation() -> None:
     assert ambiguous.state_hash == before
 
 
+def test_partial_side_effect_records_mutation_as_partial_truth() -> None:
+    world = default_world()
+    world.services["payments-api"].health = "unhealthy"
+    simulator = Simulator(
+        world,
+        [
+            FaultSpec(
+                fault_id="partial-1",
+                kind=FaultKind.PARTIAL_SIDE_EFFECT,
+                tool_name="restart_service",
+                occurrence=1,
+            )
+        ],
+    )
+
+    event = simulator.execute("operator", "restart_service", {"service_id": "payments-api"})
+
+    assert event.actual_outcome.status is OutcomeStatus.PARTIAL
+    assert event.visible_observation.status == "partial"
+    assert simulator.world.services["payments-api"].health == "healthy"
+    assert event.state_diff.changes
+
+
 def test_seeded_fault_replay_and_diffs_are_stable() -> None:
     faults = [
         FaultSpec(

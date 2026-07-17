@@ -262,7 +262,10 @@ class ExperimentRunner:
                 and existing.public_request.model_dump() == scenario.public_view().model_dump()
                 and existing.starting_world == scenario.initial_world
                 and existing.agent_model == self.config.model
-                and existing.runtime_status != "agent_runtime_error"
+                and (
+                    existing.runtime_status != "agent_runtime_error"
+                    or _is_model_protocol_error(existing)
+                )
             ):
                 existing.verification = verify_episode(scenario, existing)
                 existing.failure = classify_failure(scenario, existing, existing.verification)
@@ -342,3 +345,9 @@ class ExperimentRunner:
         if stats.accepted != budget:
             raise RuntimeError("Shared random generation statistics do not match the corpus")
         return GenerationResult(accepted=scenarios, stats=stats)
+
+
+def _is_model_protocol_error(episode: EpisodeResult) -> bool:
+    """Identify a persisted model-protocol failure that must not be resampled."""
+
+    return any(error.startswith("AgentProtocolError:") for error in episode.runtime_errors)
