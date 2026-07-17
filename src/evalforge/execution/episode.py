@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from pydantic import BaseModel, Field
 
@@ -81,6 +82,7 @@ def run_episode(
         runtime_status=runtime_status,
         runtime_errors=errors,
         malformed_calls=registry.malformed_calls,
+        raw_provider_messages=cast(list[str], getattr(agent, "raw_messages", [])),
     )
     result.verification = verify_episode(scenario, result)
     result.failure = classify_failure(scenario, result, result.verification)

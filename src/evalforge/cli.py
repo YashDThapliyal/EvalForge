@@ -5,9 +5,12 @@ from typing import Annotated
 
 import typer
 
+from evalforge.agents.base import Agent
+from evalforge.agents.openai_agent import LiveConfigurationError, OpenAIAgent
 from evalforge.agents.scripted import ScriptedBaselineAgent
 from evalforge.config import load_experiment_config
 from evalforge.execution.artifacts import atomic_write
+from evalforge.execution.demo import run_demo
 from evalforge.execution.episode import run_episode
 from evalforge.execution.experiment import ExperimentRunner
 from evalforge.reporting.html import generate_html_report
@@ -55,7 +58,16 @@ def run_command(
 ) -> None:
     """Run one scenario with a deterministic offline agent."""
 
-    if agent != "scripted":
+    selected_agent: Agent
+    if agent == "scripted":
+        selected_agent = ScriptedBaselineAgent()
+    elif agent == "openai":
+        try:
+            selected_agent = OpenAIAgent()
+        except LiveConfigurationError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+    else:
         typer.echo(f"Unsupported offline agent: {agent}", err=True)
         raise typer.Exit(1)
     loaded = load_scenario(scenario)
@@ -64,7 +76,7 @@ def run_command(
         typer.echo(f"Scenario invalid: {', '.join(sorted(validation.codes))}", err=True)
         raise typer.Exit(1)
     output = Path("artifacts") / "runs" / loaded.scenario_id
-    result = run_episode(loaded, ScriptedBaselineAgent(), artifact_dir=output)
+    result = run_episode(loaded, selected_agent, artifact_dir=output)
     typer.echo(
         f"Episode {result.episode_id}: {result.runtime_status}; "
         f"{len(result.events)} tool call(s); artifacts: {output}"
@@ -145,6 +157,25 @@ def inspect_command(
     """Print a chronological failed-episode timeline and exact violated rules."""
 
     typer.echo(render_failure_timeline(experiment, episode), nl=False)
+
+
+@app.command("demo")
+def demo_command(
+    seed: Annotated[int, typer.Option("--seed")] = 7,
+) -> None:
+    """Run the six-case credential-free demonstration."""
+
+    result = run_demo(seed=seed)
+    typer.echo(
+        f"Demo scenarios: {len(result.episodes)}; success rate: {result.success_rate:.1%}\n"
+        f"Discovered failure signatures: {len(result.failure_signatures)}"
+    )
+    for signature in result.failure_signatures:
+        typer.echo(f"- {signature}")
+    typer.echo("\nExample failure timeline:")
+    typer.echo(result.example_timeline, nl=False)
+    typer.echo(f"Markdown report: {result.artifact_dir / 'report.md'}")
+    typer.echo(f"HTML report: {result.artifact_dir / 'report.html'}")
 
 
 if __name__ == "__main__":

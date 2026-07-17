@@ -36,7 +36,7 @@ packages = ["src/evalforge"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--strict-markers"
+addopts = "--strict-markers -m 'not live'"
 markers = ["live: requires live provider credentials"]
 
 [tool.ruff]

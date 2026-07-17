@@ -8,6 +8,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel
 
+from evalforge.agents.base import Agent
+from evalforge.agents.openai_agent import OpenAIAgent
 from evalforge.agents.scripted import ScriptedBaselineAgent
 from evalforge.config import ExperimentConfig
 from evalforge.domain.scenario import ScenarioSpec, SourceMethod
@@ -143,7 +145,7 @@ class ExperimentRunner:
             episodes.append(
                 run_episode(
                     scenario,
-                    ScriptedBaselineAgent(),
+                    self._agent(),
                     artifact_dir=root / "episodes" / episode_id,
                     episode_id=episode_id,
                 )
@@ -194,7 +196,7 @@ class ExperimentRunner:
             episode_id = f"failure_directed-{index:03d}-{candidate.scenario_id}"
             episode = run_episode(
                 candidate,
-                ScriptedBaselineAgent(),
+                self._agent(),
                 artifact_dir=root / "episodes" / episode_id,
                 episode_id=episode_id,
             )
@@ -215,3 +217,10 @@ class ExperimentRunner:
     def _experiment_id(self) -> str:
         digest = hashlib.sha256(canonical_json(self.config).encode()).hexdigest()[:10]
         return f"evalforge-seed{self.config.seed}-b{self.config.scenarios_per_source}-{digest}"
+
+    def _agent(self) -> Agent:
+        if self.config.agent == "scripted":
+            return ScriptedBaselineAgent()
+        if self.config.agent == "openai":
+            return OpenAIAgent()
+        raise ValueError(f"Unsupported experiment agent: {self.config.agent}")

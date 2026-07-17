@@ -49,3 +49,9 @@ Work began 2026-07-17. Exact phase gates and final command results are recorded 
 - Red test: report tests failed during collection because renderers and inspector did not exist.
 - Implemented artifact-only Markdown/HTML regeneration, escaped per-failure pages, three-source tables, discovery curves, lineage links, and exact-rule terminal inspection.
 - Gate: reporting/golden tests (5 passed); regenerated the quick report; inspected `failure_directed-008-fd_15_0000`; full suite (40 passed), Ruff, and strict mypy — passed.
+
+## Phase 8 — optional live adapter, hardening, and documentation
+
+- Red test: provider/demo tests failed during collection because optional adapter, live proposer, and demo modules did not exist.
+- Implemented fake-tested native OpenAI tool calling, raw-message capture, strict final parsing, a JSON-schema-only live proposer, actionable no-key errors, socket-blocked default tests, an end-to-end six-case demo, and complete architecture/experiment/README documentation.
+- Gate so far: 44 default tests passed (1 live test deselected), 91% overall coverage, Ruff and strict mypy passed, and the offline demo completed 6 scenarios with 4 unique failure signatures.
