@@ -8,3 +8,8 @@
 - 2026-07-17: Failure-directed generation uses bounded data-only mutations and only prior failures from its own adaptive source run.
 - 2026-07-17: Static reports are regenerated exclusively from artifacts and use Jinja auto-escaping for all episode content.
 - 2026-07-17: Live provider clients are injected through minimal protocols in tests; default pytest runs explicitly exclude live tests and block socket connections.
+- 2026-07-17: Live agents terminate through a strict provider-side `submit_final` tool. OpenAI preserves native `response.output` continuations (including reasoning items); Anthropic preserves assistant tool-use blocks followed immediately by user tool-result blocks.
+- 2026-07-17: Live experiments have no scripted fallback. Provider/model identity, raw messages, tokens, provider turns, and explicit-price cost estimates are persisted per episode.
+- 2026-07-17: Quick manual selection is round-robin by reviewed family. Configuration scenarios expose the required numeric value through ordinary logs rather than hidden oracle state.
+- 2026-07-17: Interrupted runs reuse exact completed model outcomes, including policy failures, and retry only provider/API runtime errors to prevent selective resampling.
+- 2026-07-17: Canonical signatures derive their semantic claim dimension from the failed outcome predicate instead of final-claim ordering.

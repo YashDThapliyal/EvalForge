@@ -8,3 +8,15 @@ Primary outputs are unique meaningful failure signatures, severity-weighted uniq
 
 Reproducibility comes from canonical serialization, explicit seeds, deterministic ordering, complete resolved configurations, fresh world copies, and replayable episode artifacts.
 
+## Live comparison
+
+`configs/live_openai.yaml` and `configs/live_anthropic.yaml` run the same 12-per-source design against real provider models. Manual selection is stratified across all reviewed families. If the adaptive source has not observed a failure, it continues through a deterministic validated seed pool; it creates targeted children only after a failure appears in its own run. A model with no adaptive failure therefore has zero failure-directed children rather than fabricated feedback.
+
+```bash
+uv run evalforge compare \
+  --experiment artifacts/live/<openai-id> \
+  --experiment artifacts/live-audited/<anthropic-id> \
+  --output artifacts/live-audited/final-model-comparison
+```
+
+The comparison includes model identity, task/full stress success, unique signatures, severity-weighted discoveries, failure-directed child count, tokens, provider calls, estimated cost, and provider runtime failures.

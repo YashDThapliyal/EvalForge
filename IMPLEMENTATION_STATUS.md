@@ -119,3 +119,62 @@ uv sync --all-extras
 uv run evalforge run --scenario scenarios/manual/bad_deployment_001.yaml --agent openai
 uv run pytest -m live tests/live
 ```
+
+## Audited real-model evaluation — passed 2026-07-17
+
+The earlier quick report used `ScriptedBaselineAgent` and remains only an offline CI demonstration. It is not used in this model comparison.
+
+### Live TDD and hardening
+
+- Added failing tests first for strict schemas, OpenAI reasoning/function continuation replay, Anthropic tool-result ordering, structured finalization, provider usage/cost, cross-model reports, adaptive seed fallback, stratified selection, observable diagnosis, exact resume, and signature stability.
+- Implemented real OpenAI Responses and Anthropic Messages tool loops with strict `submit_final`; no live path falls back to the scripted agent.
+- Fixed verifier false positives around resolved uncertainty and verification followed by an incident action.
+- Made configuration repair agent-solvable through ordinary log evidence and changed quick manual selection to cover all ten families before repeats.
+- Continued adaptive validated seeds when a strong model passed the first seed; children are generated only after an own-run failure.
+- Preserved completed model failures during resume so failed episodes are never selectively resampled.
+- Made failure signatures independent of final-claim ordering.
+
+### Audited commands
+
+```text
+.venv/bin/evalforge experiment --config configs/live_openai.yaml
+  passed: evalforge-seed7-b12-652596d9d5, 36 episodes
+
+.venv/bin/evalforge experiment --config configs/live_anthropic.yaml
+  passed: evalforge-seed7-b12-6c29c2409f, 36 episodes
+
+.venv/bin/evalforge compare \
+  --experiment artifacts/live/evalforge-seed7-b12-652596d9d5 \
+  --experiment artifacts/live-audited/evalforge-seed7-b12-6c29c2409f \
+  --output artifacts/live-audited/final-model-comparison
+  passed: JSON, Markdown, and HTML generated
+```
+
+### Audited results
+
+- Equal accepted budget: 12 manual, 12 random, and 12 adaptive scenarios per model; 72 genuine model episodes total.
+- `gpt-5.6-sol`: 36/36 task and full stress success; 0 failures/signatures; 0 failure-directed children because its adaptive run found no failure; 249,719 input tokens (158,055 cached), 15,044 output tokens, 207 provider calls, estimated `$0.9887`, 0 provider runtime errors.
+- `claude-opus-4-8`: 27/36 task and full stress success (75.0%); 9 failure episodes; 1 unique high-severity signature; 4 lineage-tracked children; 559,768 input tokens, 33,603 output tokens, 218 provider calls, estimated `$3.6389`, 0 provider runtime errors.
+- Anthropic consistently wrote timeout `"30"` (string) instead of `30` (integer). The simulator applied the typed mutation, deterministic verification rejected it, and four targeted descendants reproduced the signature.
+- Manual and random sets covered all ten scenario families. OpenAI's adaptive seed sweep covered ten; Anthropic's covered nine because four targeted children filled the remaining budget. Each source covered four injected fault families.
+- These are descriptive results for one seed and one quick sample per model; no statistical-significance or general superiority claim is made.
+
+Final artifacts:
+
+- `artifacts/live-audited/final-model-comparison/report.md`
+- `artifacts/live-audited/final-model-comparison/report.html`
+- `artifacts/live/evalforge-seed7-b12-652596d9d5/report.md`
+- `artifacts/live-audited/evalforge-seed7-b12-6c29c2409f/report.md`
+
+### Final post-live Definition of Done recheck
+
+```text
+uv sync --all-extras                                      passed (45 packages resolved)
+uv run ruff format --check .                              passed (74 files formatted)
+uv run ruff check .                                       passed
+uv run mypy src/evalforge                                 passed (50 source files)
+uv run pytest --cov=evalforge --cov-report=term-missing   passed (56 passed, 2 live deselected, 90% coverage)
+uv run evalforge validate scenarios/manual                passed (50 scenarios)
+uv run evalforge demo --seed 7                            passed (6 scenarios, 4 unique signatures)
+uv run evalforge experiment --config configs/quick.yaml   passed (36 episodes, evalforge-seed7-b12-e848f5c094)
+```

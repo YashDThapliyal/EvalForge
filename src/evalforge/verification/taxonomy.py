@@ -88,11 +88,22 @@ def classify_failure(
     )
     retry_pattern = "repeated" if _has_repeat(episode) else "single"
     topology = "distractor" if "distractor_service" in scenario.tags else "standard"
-    claim_type = (
-        episode.final.claims[0].claim_type.value
-        if episode.final is not None and episode.final.claims
-        else "none"
+    outcome_failure = next(
+        (
+            finding
+            for finding in ordered
+            if finding.component == "outcome" and finding.message.startswith("Outcome predicate ")
+        ),
+        None,
     )
+    if outcome_failure is not None:
+        claim_type = outcome_failure.message.removeprefix("Outcome predicate ").split()[0]
+    else:
+        claim_type = (
+            sorted(claim.claim_type.value for claim in episode.final.claims)[0]
+            if episode.final is not None and episode.final.claims
+            else "none"
+        )
     signature = "|".join(
         [
             primary.value,

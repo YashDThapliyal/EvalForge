@@ -169,3 +169,33 @@ def test_taxonomy_declares_every_contract_code() -> None:
         "MALFORMED_FINAL_RESULT",
         "TASK_NOT_COMPLETED",
     }
+
+
+def test_failure_signature_is_stable_across_final_claim_ordering() -> None:
+    scenario = build_manual_scenario("incorrect_config", 0)
+    no_claims = run_episode(
+        scenario,
+        ReplayAgent([], AgentFinal(status="resolved", summary="Done", claims=[])),
+    )
+    health_first = run_episode(
+        scenario,
+        ReplayAgent(
+            [],
+            AgentFinal(
+                status="resolved",
+                summary="Done",
+                claims=[
+                    FinalClaim(
+                        claim_type=ClaimType.SERVICE_HEALTH,
+                        service_id="payments-api",
+                        value="unhealthy",
+                    )
+                ],
+            ),
+        ),
+    )
+    first = classify_failure(scenario, no_claims, verify_episode(scenario, no_claims))
+    second = classify_failure(scenario, health_first, verify_episode(scenario, health_first))
+    assert first is not None and second is not None
+    assert first.canonical_signature == second.canonical_signature
+    assert first.canonical_signature.endswith("|config_value")

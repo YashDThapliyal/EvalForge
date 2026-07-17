@@ -15,7 +15,7 @@ from evalforge.agents.scripted import ScriptedBaselineAgent
 from evalforge.config import ExperimentConfig
 from evalforge.domain.scenario import ScenarioSpec, SourceMethod
 from evalforge.execution.artifacts import atomic_write
-from evalforge.execution.episode import EpisodeResult, run_episode
+from evalforge.execution.episode import EpisodeResult, persist_episode, run_episode
 from evalforge.reporting.metrics import ExperimentMetrics, SourceMetrics, compute_source_metrics
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
 from evalforge.scenarios.loader import load_scenarios, write_scenario
@@ -26,6 +26,8 @@ from evalforge.scenarios.random_generator import (
     RandomScenarioGenerator,
 )
 from evalforge.serialization import canonical_json
+from evalforge.verification.engine import verify_episode
+from evalforge.verification.taxonomy import classify_failure
 
 
 class ExperimentResult(BaseModel):
@@ -269,6 +271,9 @@ class ExperimentRunner:
                 and existing.agent_model == self.config.model
                 and existing.runtime_status != "agent_runtime_error"
             ):
+                existing.verification = verify_episode(scenario, existing)
+                existing.failure = classify_failure(scenario, existing, existing.verification)
+                persist_episode(episode_dir, scenario, existing)
                 return existing
         return run_episode(
             scenario,
