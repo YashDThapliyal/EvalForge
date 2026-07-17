@@ -15,3 +15,6 @@
 - 2026-07-17: Quick manual selection is round-robin by reviewed family. Configuration scenarios expose the required numeric value through ordinary logs rather than hidden oracle state.
 - 2026-07-17: Interrupted runs reuse exact completed model outcomes, including policy failures, and retry only provider/API runtime errors to prevent selective resampling.
 - 2026-07-17: Canonical signatures derive their semantic claim dimension from the failed outcome predicate instead of final-claim ordering.
+- 2026-07-17: Model protocol failures are completed model outcomes and are preserved on resume; only provider/API infrastructure failures are eligible for retry.
+- 2026-07-17: Public comparison artifacts use repository-relative paths and a compact aggregate snapshot is committed under `results/model-suite/`; full provider transcripts remain ignored.
+- 2026-07-17: Failure-directed capability descriptions enumerate only executable bounded transformations. Additional contemplated operators remain future work.

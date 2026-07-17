@@ -156,3 +156,59 @@ uv run pytest --cov=evalforge --cov-report=term-missing      passed (62, 2 desel
   submit_final was not called`, not an infrastructure failure.
 - Final gates: Ruff format/check passed, strict mypy passed for 48 source files, and pytest passed
   with 65 tests (2 credential-gated live tests deselected).
+
+## Final audit and packaging pass — 2026-07-17
+
+Material fixes completed test-first:
+
+- Preserved `AgentProtocolError` episodes on resume so model failures cannot be selectively
+  resampled; provider/API infrastructure failures remain retryable.
+- Made comparison artifact paths repository-relative and added explicit infrastructure-versus-
+  protocol sensitivity to static HTML.
+- Implemented `PARTIAL_SIDE_EFFECT` as a partial actual/visible outcome with a retained mutation
+  and state diff.
+- Reduced the advertised failure-directed mutation registry to the three executable bounded
+  transformations instead of naming unimplemented operators.
+
+Audit evidence:
+
+- Inspected all 216 model-suite episodes: 108 OpenAI and 108 Anthropic; every episode has an
+  explicit provider/model and at least one raw provider response. No scripted or replay identity
+  appears in the live suite.
+- Regenerated all six per-model reports and both comparison locations without provider calls.
+  Curated and working comparison JSON/Markdown SHA-256 hashes matched byte-for-byte.
+- Inspected successful Opus episode `manual-000-bad_deployment_001`, GPT-5 protocol episode
+  `failure_directed-003-fd_10_0000`, Haiku false-success episode
+  `failure_directed-008-fd_15_0000`, and that child's recorded parent lineage.
+- Tracked-file secret scan found no API key material. Secret-shaped matches in ignored raw OpenAI
+  artifacts were confirmed to be `output[].encrypted_content` provider continuation blobs.
+
+Final command results:
+
+```text
+uv sync --all-extras                                      passed (45 resolved, 44 checked)
+uv run ruff format --check .                              passed (75 files)
+uv run ruff check .                                       passed
+uv run mypy src/evalforge                                 passed (48 source files)
+uv run pytest -q                                          passed (67, 2 live deselected)
+uv run pytest --cov=evalforge --cov-report=term-missing   passed (67, 2 deselected, 90%)
+uv run evalforge validate scenarios/manual                passed (50 scenarios)
+bash -n scripts/run_model_suite.sh                        passed
+```
+
+The legacy `uv run evalforge demo --seed 7` command exits 2 (`No such command 'demo'`) because
+the owner-mandated live-only amendment removed credential-free production evaluation. The paid
+`uv run evalforge experiment --config configs/quick.yaml` command was intentionally not rerun in
+this audit: it invokes a live OpenAI proposer and tested agent, while the attached audit brief
+also prohibited unnecessary paid reruns. Its orchestration is covered by the default suite and
+the completed six-model artifacts.
+
+Release artifacts:
+
+- `results/model-suite/report.md`
+- `results/model-suite/report.html`
+- `results/model-suite/comparison.json`
+
+Known release limitations: one domain/seed/quick budget, no inferential statistics, adaptive
+inputs vary by model, bounded adaptive mutations, proposal cost omitted from tracked episode
+cost, 89% experiment-runner coverage versus 90% core target, and no owner-selected license.

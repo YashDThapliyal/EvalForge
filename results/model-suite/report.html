@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8"><title>EvalForge model comparison</title>
+<style>body{font:15px system-ui;max-width:1200px;margin:2rem auto;padding:0 1rem;color:#18202a}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccd3da;padding:.5rem;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#eef2f5}pre{white-space:pre-wrap;background:#f6f8fa;padding:1rem}</style></head><body>
+<h1>EvalForge Live Model Comparison</h1><p>Equal accepted budget: 12 scenarios per source.</p>
+<table><thead><tr><th>Model</th><th>Episodes</th><th>Task success</th><th>Stress success</th><th>Unique failures</th><th>Weighted discoveries</th><th>FD children</th><th>Input tokens</th><th>Output tokens</th><th>API calls</th><th>Estimated cost</th><th>Agent runtime errors</th></tr></thead><tbody>
+<tr><td>openai / gpt-5.6-sol</td><td>36</td><td>91.7%</td><td>91.7%</td><td>2</td><td>6</td><td>11</td><td>240122</td><td>13828</td><td>199</td><td>$0.9476</td><td>0</td></tr><tr><td>openai / gpt-5</td><td>36</td><td>63.9%</td><td>58.3%</td><td>5</td><td>16</td><td>9</td><td>460647</td><td>65038</td><td>267</td><td>$0.8060</td><td>1</td></tr><tr><td>openai / gpt-5-mini</td><td>36</td><td>58.3%</td><td>52.8%</td><td>9</td><td>30</td><td>7</td><td>300508</td><td>34743</td><td>222</td><td>$0.0961</td><td>0</td></tr><tr><td>anthropic / claude-opus-4-8</td><td>36</td><td>58.3%</td><td>58.3%</td><td>2</td><td>6</td><td>10</td><td>612941</td><td>35349</td><td>233</td><td>$3.9484</td><td>0</td></tr><tr><td>anthropic / claude-sonnet-5</td><td>36</td><td>58.3%</td><td>30.6%</td><td>9</td><td>34</td><td>10</td><td>709849</td><td>48385</td><td>255</td><td>$1.9035</td><td>0</td></tr><tr><td>anthropic / claude-haiku-4-5-20251001</td><td>36</td><td>63.9%</td><td>50.0%</td><td>9</td><td>31</td><td>7</td><td>483847</td><td>25977</td><td>231</td><td>$0.6137</td><td>0</td></tr>
+</tbody></table>
+<h2>Runtime-error sensitivity</h2><p>Infrastructure-excluded rates remove provider/API failures only. Model protocol failures remain model failures.</p>
+<table><thead><tr><th>Model</th><th>Infrastructure errors</th><th>Protocol errors</th><th>Task raw</th><th>Task excluding infrastructure</th><th>Stress raw</th><th>Stress excluding infrastructure</th></tr></thead><tbody>
+<tr><td>openai / gpt-5.6-sol</td><td>0</td><td>0</td><td>91.7%</td><td>91.7%</td><td>91.7%</td><td>91.7%</td></tr><tr><td>openai / gpt-5</td><td>0</td><td>1</td><td>63.9%</td><td>63.9%</td><td>58.3%</td><td>58.3%</td></tr><tr><td>openai / gpt-5-mini</td><td>0</td><td>0</td><td>58.3%</td><td>58.3%</td><td>52.8%</td><td>52.8%</td></tr><tr><td>anthropic / claude-opus-4-8</td><td>0</td><td>0</td><td>58.3%</td><td>58.3%</td><td>58.3%</td><td>58.3%</td></tr><tr><td>anthropic / claude-sonnet-5</td><td>0</td><td>0</td><td>58.3%</td><td>58.3%</td><td>30.6%</td><td>30.6%</td></tr><tr><td>anthropic / claude-haiku-4-5-20251001</td><td>0</td><td>0</td><td>63.9%</td><td>63.9%</td><td>50.0%</td><td>50.0%</td></tr>
+</tbody></table>
+<h2>Source-level discovery comparison</h2><table><thead><tr><th>Source</th><th>Success</th><th>Unique signatures</th><th>Weighted discoveries</th></tr></thead><tbody>
+<tr><td>manual</td><td>81.9%</td><td>8</td><td>26</td></tr><tr><td>random</td><td>58.3%</td><td>11</td><td>41</td></tr><tr><td>failure_directed</td><td>30.6%</td><td>6</td><td>19</td></tr>
+</tbody></table><h2>Method</h2><pre># EvalForge Live Model Comparison
+
+Equal accepted budget: 12 scenarios per source.
+
+| Provider / model | Episodes | Task success | Stress success | Unique failures | Weighted discoveries | FD children | Input tokens | Output tokens | Provider API calls | Estimated cost | Agent runtime errors |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| openai / `gpt-5.6-sol` | 36 | 91.7% | 91.7% | 2 | 6 | 11 | 240122 | 13828 | 199 | $0.9476 | 0 |
+| openai / `gpt-5` | 36 | 63.9% | 58.3% | 5 | 16 | 9 | 460647 | 65038 | 267 | $0.8060 | 1 |
+| openai / `gpt-5-mini` | 36 | 58.3% | 52.8% | 9 | 30 | 7 | 300508 | 34743 | 222 | $0.0961 | 0 |
+| anthropic / `claude-opus-4-8` | 36 | 58.3% | 58.3% | 2 | 6 | 10 | 612941 | 35349 | 233 | $3.9484 | 0 |
+| anthropic / `claude-sonnet-5` | 36 | 58.3% | 30.6% | 9 | 34 | 10 | 709849 | 48385 | 255 | $1.9035 | 0 |
+| anthropic / `claude-haiku-4-5-20251001` | 36 | 63.9% | 50.0% | 9 | 31 | 7 | 483847 | 25977 | 231 | $0.6137 | 0 |
+
+## Runtime-error sensitivity
+
+Raw rates include every episode. Exclusion-adjusted rates remove provider/API infrastructure errors only; model protocol errors remain model failures.
+
+| Provider / model | Infrastructure errors | Protocol errors | Task raw | Task excl. infra | Stress raw | Stress excl. infra |
+|---|---:|---:|---:|---:|---:|---:|
+| openai / `gpt-5.6-sol` | 0 | 0 | 91.7% | 91.7% | 91.7% | 91.7% |
+| openai / `gpt-5` | 0 | 1 | 63.9% | 63.9% | 58.3% | 58.3% |
+| openai / `gpt-5-mini` | 0 | 0 | 58.3% | 58.3% | 52.8% | 52.8% |
+| anthropic / `claude-opus-4-8` | 0 | 0 | 58.3% | 58.3% | 58.3% | 58.3% |
+| anthropic / `claude-sonnet-5` | 0 | 0 | 58.3% | 58.3% | 30.6% | 30.6% |
+| anthropic / `claude-haiku-4-5-20251001` | 0 | 0 | 63.9% | 63.9% | 50.0% | 50.0% |
+
+## Source-level discovery comparison
+
+Signatures are deduplicated across models within each source. Success is full deterministic stress-test success over all model episodes.
+
+| Source | Success | Unique signatures | Weighted discoveries |
+|---|---:|---:|---:|
+| Manual | 81.9% | 8 | 26 |
+| Random | 58.3% | 11 | 41 |
+| Failure-Directed | 30.6% | 6 | 19 |
+
+## Method
+
+Every model received the same public interface and matched manual and random scenarios. Failure-directed scenarios are model-specific because each adaptive arm uses only that model&#39;s earlier failures. Hidden faults, actual outcomes, oracle plans, and verifier predicates were not provided. The comparison uses equal accepted scenario budgets and deterministic verification; invalid generated scenarios do not consume the evaluation budget.
+
+Costs are estimates from recorded provider token usage and the explicit rates saved in each resolved experiment configuration.
+</pre></body></html>

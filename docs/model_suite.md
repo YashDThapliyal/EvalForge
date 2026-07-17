@@ -47,6 +47,9 @@ artifacts/model-suite/comparison/report.md
 artifacts/model-suite/comparison/report.html
 ```
 
+A compact audited snapshot suitable for repository review is committed under
+`results/model-suite/`. Full episode artifacts remain generated and gitignored.
+
 ## Run models individually
 
 Generate the common random corpus once before the first individual model run:
