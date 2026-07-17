@@ -4,7 +4,7 @@ agent: anthropic
 model: claude-opus-4-8
 max_agent_steps: 10
 max_output_tokens: 4096
-output_dir: artifacts/live
+output_dir: artifacts/live-audited
 random_proposer: programmatic
 failure_directed_proposer: programmatic
 manual_selection_strategy: stratified-v1

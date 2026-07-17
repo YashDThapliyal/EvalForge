@@ -32,7 +32,9 @@ def test_model_comparison_is_generated_from_real_episode_artifacts(tmp_path: Pat
     assert "baseline-a" in result.markdown
     assert "baseline-b" in result.markdown
     assert "Provider API calls" in result.markdown
+    assert "FD children" in result.markdown
     assert (output / "report.html").exists()
     payload = json.loads((output / "comparison.json").read_text(encoding="utf-8"))
     assert len(payload["models"]) == 2
     assert all(item["evaluated_episodes"] == 3 for item in payload["models"])
+    assert all("failure_directed_children" in item for item in payload["models"])

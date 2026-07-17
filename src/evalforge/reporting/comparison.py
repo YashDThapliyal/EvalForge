@@ -34,6 +34,7 @@ class ModelComparisonMetrics(BaseModel):
     provider_api_calls: int
     estimated_cost_usd: float
     runtime_error_episodes: int
+    failure_directed_children: int
     artifact_dir: str
 
 
@@ -73,8 +74,8 @@ def generate_model_comparison(experiments: list[Path], output: Path) -> Comparis
             """<!doctype html><html><head><meta charset="utf-8"><title>EvalForge model comparison</title>
 <style>body{font:15px system-ui;max-width:1200px;margin:2rem auto;padding:0 1rem;color:#18202a}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccd3da;padding:.5rem;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#eef2f5}pre{white-space:pre-wrap;background:#f6f8fa;padding:1rem}</style></head><body>
 <h1>EvalForge Live Model Comparison</h1><p>Equal accepted budget: {{ artifact.equal_budget_per_source }} scenarios per source.</p>
-<table><thead><tr><th>Model</th><th>Episodes</th><th>Task success</th><th>Stress success</th><th>Unique failures</th><th>Weighted discoveries</th><th>Input tokens</th><th>Output tokens</th><th>API calls</th><th>Estimated cost</th><th>Runtime errors</th></tr></thead><tbody>
-{% for row in artifact.models %}<tr><td>{{ row.agent }} / {{ row.model }}</td><td>{{ row.evaluated_episodes }}</td><td>{{ '%.1f%%'|format(row.task_success_rate * 100) }}</td><td>{{ '%.1f%%'|format(row.stress_test_success_rate * 100) }}</td><td>{{ row.unique_failure_signatures }}</td><td>{{ row.severity_weighted_discoveries }}</td><td>{{ row.input_tokens }}</td><td>{{ row.output_tokens }}</td><td>{{ row.provider_api_calls }}</td><td>${{ '%.4f'|format(row.estimated_cost_usd) }}</td><td>{{ row.runtime_error_episodes }}</td></tr>{% endfor %}
+<table><thead><tr><th>Model</th><th>Episodes</th><th>Task success</th><th>Stress success</th><th>Unique failures</th><th>Weighted discoveries</th><th>FD children</th><th>Input tokens</th><th>Output tokens</th><th>API calls</th><th>Estimated cost</th><th>Provider runtime errors</th></tr></thead><tbody>
+{% for row in artifact.models %}<tr><td>{{ row.agent }} / {{ row.model }}</td><td>{{ row.evaluated_episodes }}</td><td>{{ '%.1f%%'|format(row.task_success_rate * 100) }}</td><td>{{ '%.1f%%'|format(row.stress_test_success_rate * 100) }}</td><td>{{ row.unique_failure_signatures }}</td><td>{{ row.severity_weighted_discoveries }}</td><td>{{ row.failure_directed_children }}</td><td>{{ row.input_tokens }}</td><td>{{ row.output_tokens }}</td><td>{{ row.provider_api_calls }}</td><td>${{ '%.4f'|format(row.estimated_cost_usd) }}</td><td>{{ row.runtime_error_episodes }}</td></tr>{% endfor %}
 </tbody></table><h2>Method</h2><pre>{{ markdown }}</pre></body></html>"""
         )
         .render(artifact=artifact, markdown=markdown)
@@ -110,6 +111,11 @@ def _aggregate(experiment: Path) -> ModelComparisonMetrics:
         episode = _json(path)
         if episode.get("runtime_status") == "agent_runtime_error":
             runtime_errors += 1
+    directed_children = 0
+    for path in sorted((experiment / "scenarios" / "failure_directed").glob("*.yaml")):
+        scenario = cast(dict[str, object], yaml.safe_load(path.read_text(encoding="utf-8")))
+        if scenario.get("parent_scenario_id") is not None:
+            directed_children += 1
     budget = config.get("scenarios_per_source")
     if not isinstance(budget, int):
         raise ValueError(f"Resolved experiment budget is invalid: {experiment}")
@@ -131,6 +137,7 @@ def _aggregate(experiment: Path) -> ModelComparisonMetrics:
         provider_api_calls=sum(item.provider_api_calls for item in sources),
         estimated_cost_usd=sum(item.estimated_cost_usd for item in sources),
         runtime_error_episodes=runtime_errors,
+        failure_directed_children=directed_children,
         artifact_dir=str(experiment.resolve()),
     )
 
@@ -142,16 +149,17 @@ def _markdown(artifact: ModelComparisonArtifact) -> str:
         f"Equal accepted budget: {artifact.equal_budget_per_source} scenarios per source.",
         "",
         "| Provider / model | Episodes | Task success | Stress success | Unique failures | "
-        "Weighted discoveries | Input tokens | Output tokens | Provider API calls | "
-        "Estimated cost | Runtime errors |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "Weighted discoveries | FD children | Input tokens | Output tokens | Provider API calls | "
+        "Estimated cost | Provider runtime errors |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in artifact.models:
         lines.append(
             f"| {row.agent} / `{row.model}` | {row.evaluated_episodes} | "
             f"{row.task_success_rate:.1%} | {row.stress_test_success_rate:.1%} | "
             f"{row.unique_failure_signatures} | {row.severity_weighted_discoveries} | "
-            f"{row.input_tokens} | {row.output_tokens} | {row.provider_api_calls} | "
+            f"{row.failure_directed_children} | {row.input_tokens} | {row.output_tokens} | "
+            f"{row.provider_api_calls} | "
             f"${row.estimated_cost_usd:.4f} | {row.runtime_error_episodes} |"
         )
     lines.extend(

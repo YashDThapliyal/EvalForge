@@ -59,6 +59,8 @@ class ProgrammaticProposer:
         scenario.source_method = SourceMethod.RANDOM
         scenario.tags = [family, "programmatic_random", f"variant_{variant}"]
         scenario.metadata = {
+            "family": family,
+            "variant": variant,
             "proposer": "programmatic",
             "attempt": attempt,
             "generator_seed": seed,

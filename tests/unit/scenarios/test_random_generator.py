@@ -22,6 +22,7 @@ def test_random_generation_is_offline_valid_deterministic_and_feedback_free() ->
     assert first.stats.accepted == 12
     assert all(ScenarioValidator().validate(item).valid for item in first.accepted)
     assert all(item.source_method == "random" for item in first.accepted)
+    assert len({item.metadata["family"] for item in first.accepted[:10]}) == 10
 
 
 class SometimesInvalidProposer:

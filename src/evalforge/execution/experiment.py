@@ -256,7 +256,7 @@ class ExperimentRunner:
         return seed
 
     def _run_or_resume(self, root: Path, scenario: ScenarioSpec, episode_id: str) -> EpisodeResult:
-        """Reuse an exact valid episode from an interrupted run of the same config."""
+        """Reuse an exact completed model outcome, but retry provider/API runtime errors."""
 
         episode_dir = root / "episodes" / episode_id
         episode_path = episode_dir / "episode.json"
@@ -267,7 +267,7 @@ class ExperimentRunner:
                 and existing.public_request.model_dump() == scenario.public_view().model_dump()
                 and existing.starting_world == scenario.initial_world
                 and existing.agent_model == self.config.model
-                and existing.runtime_status == "valid"
+                and existing.runtime_status != "agent_runtime_error"
             ):
                 return existing
         return run_episode(
