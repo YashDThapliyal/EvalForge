@@ -1,0 +1,8 @@
+seed: 7
+scenarios_per_source: 12
+agent: scripted
+max_agent_steps: 10
+output_dir: artifacts
+random_proposer: programmatic
+failure_directed_proposer: programmatic
+

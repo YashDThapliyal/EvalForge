@@ -6,8 +6,10 @@ from typing import Annotated
 import typer
 
 from evalforge.agents.scripted import ScriptedBaselineAgent
+from evalforge.config import load_experiment_config
 from evalforge.execution.artifacts import atomic_write
 from evalforge.execution.episode import run_episode
+from evalforge.execution.experiment import ExperimentRunner
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
 from evalforge.scenarios.loader import load_scenario, load_scenarios, write_scenario
 from evalforge.scenarios.random_generator import ProgrammaticProposer, RandomScenarioGenerator
@@ -107,6 +109,19 @@ def generate_command(
     typer.echo(
         f"Generated {len(result.accepted)} valid {method} scenario(s); "
         f"attempted {result.stats.attempted}; output: {output}"
+    )
+
+
+@app.command("experiment")
+def experiment_command(
+    config: Annotated[Path, typer.Option("--config")],
+) -> None:
+    """Run the deterministic equal-budget three-source experiment."""
+
+    result = ExperimentRunner(load_experiment_config(config)).run()
+    typer.echo(
+        f"Experiment {result.experiment_id} complete: {len(result.episode_ids)} episodes; "
+        f"artifacts: {result.artifact_dir}"
     )
 
 
