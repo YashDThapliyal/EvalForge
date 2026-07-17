@@ -144,14 +144,7 @@ class ExperimentRunner:
             scenario.max_agent_steps = self.config.max_agent_steps
             write_scenario(root / "scenarios" / source / f"{scenario.scenario_id}.yaml", scenario)
             episode_id = f"{source}-{index:03d}-{scenario.scenario_id}"
-            episodes.append(
-                run_episode(
-                    scenario,
-                    self._agent(),
-                    artifact_dir=root / "episodes" / episode_id,
-                    episode_id=episode_id,
-                )
-            )
+            episodes.append(self._run_or_resume(root, scenario, episode_id))
         return episodes
 
     def _run_failure_directed(
@@ -160,20 +153,10 @@ class ExperimentRunner:
         scenarios: list[ScenarioSpec] = []
         episodes: list[EpisodeResult] = []
         attempted = rejected = duplicates = 0
-        seed = build_manual_scenario("lost_confirmation", self.config.seed % 5)
-        seed.scenario_id = f"fd_seed_{self.config.seed}"
-        seed.source_method = SourceMethod.FAILURE_DIRECTED
-        seed.parent_scenario_id = None
-        seed.parent_failure_signature = None
         candidates: list[tuple[ScenarioSpec, EpisodeResult]] = []
         while len(scenarios) < budget:
-            if not scenarios:
-                candidate = seed
-                attempted += 1
-            else:
-                failures = [pair for pair in candidates if pair[1].failure is not None]
-                if not failures:
-                    raise RuntimeError("Adaptive source found no prior own-run failure to target")
+            failures = [pair for pair in candidates if pair[1].failure is not None]
+            if failures:
                 parent, parent_episode = failures[(len(scenarios) - 1) % len(failures)]
                 if parent_episode.failure is None:
                     raise RuntimeError("Failure target unexpectedly absent")
@@ -189,6 +172,9 @@ class ExperimentRunner:
                 if not generated.accepted:
                     raise RuntimeError("Unable to generate a valid failure-directed child")
                 candidate = generated.accepted[0]
+            else:
+                candidate = self._failure_directed_seed(len(scenarios))
+                attempted += 1
             index = len(scenarios)
             candidate.max_agent_steps = self.config.max_agent_steps
             write_scenario(
@@ -196,12 +182,7 @@ class ExperimentRunner:
                 candidate,
             )
             episode_id = f"failure_directed-{index:03d}-{candidate.scenario_id}"
-            episode = run_episode(
-                candidate,
-                self._agent(),
-                artifact_dir=root / "episodes" / episode_id,
-                episode_id=episode_id,
-            )
+            episode = self._run_or_resume(root, candidate, episode_id)
             scenarios.append(candidate)
             episodes.append(episode)
             candidates.append((candidate, episode))
@@ -214,6 +195,56 @@ class ExperimentRunner:
                 rejected=rejected,
                 duplicates=duplicates,
             ),
+        )
+
+    def _failure_directed_seed(self, index: int) -> ScenarioSpec:
+        """Return deterministic validated seeds until this model reveals a target failure."""
+
+        if index == 0:
+            family = "lost_confirmation"
+            variant = self.config.seed % 5
+            scenario_id = f"fd_seed_{self.config.seed}"
+        else:
+            families = (
+                "ambiguous_rollback",
+                "non_idempotent_incident",
+                "permission_limited",
+                "conflicting_monitoring",
+                "stale_monitoring",
+                "distractor_service",
+                "incorrect_config",
+                "unrelated_invariant",
+                "bad_deployment",
+            )
+            family = families[(index - 1) % len(families)]
+            variant = (self.config.seed + (index - 1) // len(families)) % 5
+            scenario_id = f"fd_seed_{family}_{variant}_{index:03d}"
+        seed = build_manual_scenario(family, variant)
+        seed.scenario_id = scenario_id
+        seed.source_method = SourceMethod.FAILURE_DIRECTED
+        seed.parent_scenario_id = None
+        seed.parent_failure_signature = None
+        return seed
+
+    def _run_or_resume(self, root: Path, scenario: ScenarioSpec, episode_id: str) -> EpisodeResult:
+        """Reuse an exact valid episode from an interrupted run of the same config."""
+
+        episode_dir = root / "episodes" / episode_id
+        episode_path = episode_dir / "episode.json"
+        if episode_path.exists():
+            existing = EpisodeResult.model_validate_json(episode_path.read_text(encoding="utf-8"))
+            if (
+                existing.scenario_id == scenario.scenario_id
+                and existing.public_request.model_dump() == scenario.public_view().model_dump()
+                and existing.agent_model == self.config.model
+                and existing.runtime_status == "valid"
+            ):
+                return existing
+        return run_episode(
+            scenario,
+            self._agent(),
+            artifact_dir=episode_dir,
+            episode_id=episode_id,
         )
 
     def _experiment_id(self) -> str:

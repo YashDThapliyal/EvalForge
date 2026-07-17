@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import yaml
 
@@ -38,3 +39,21 @@ def test_failure_directed_lineage_uses_only_prior_own_run_failures(tmp_path: Pat
         prior.add(scenario.scenario_id)
     assert result.generation_stats["failure_directed"].accepted == 4
     assert result.metrics.sources["failure_directed"].evaluated == 4
+
+
+def test_adaptive_source_uses_more_validated_seeds_when_no_failure_exists(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    runner = ExperimentRunner(
+        ExperimentConfig(seed=7, scenarios_per_source=4, output_dir=str(tmp_path))
+    )
+
+    def passing_episode(*args: object, **kwargs: object) -> object:
+        episode_id = str(kwargs["episode_id"])
+        return SimpleNamespace(episode_id=episode_id, failure=None)
+
+    monkeypatch.setattr("evalforge.execution.experiment.run_episode", passing_episode)
+    scenarios, episodes, stats = runner._run_failure_directed(tmp_path, 4)
+    assert len(scenarios) == len(episodes) == stats.accepted == 4
+    assert len({scenario.scenario_id for scenario in scenarios}) == 4
+    assert all(scenario.parent_scenario_id is None for scenario in scenarios)
