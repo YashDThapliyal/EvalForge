@@ -6,6 +6,14 @@
 
 Most evals end when a model fails a test. EvalForge uses that failure as input to the next test.
 
+Think of it as an **instrumented crash-test lab for AI agents**.
+
+A conventional benchmark asks whether the car reached the finish line. EvalForge puts the car on a controlled track, introduces a hidden brake or sensor failure, records every control input, inspects the vehicle afterward, and checks whether the driver's account matches the black-box recorder. If the car fails in a new way, the lab uses that failure to design the next crash test.
+
+For an AI agent, the “car” is its tool-using trajectory. The “track” is a synthetic environment. The “hidden mechanical fault” is an injected tool or observation failure. The “black box” is the actual state transition trace. And the next crash test is a validated failure-directed scenario.
+
+That is the difference between a fixed benchmark and EvalForge: **one measures performance on a list of tests; the other builds a growing map of how an agent breaks.**
+
 ```text
 generate a scenario
         ↓
