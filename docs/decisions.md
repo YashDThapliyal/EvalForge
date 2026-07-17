@@ -11,6 +11,7 @@
 - 2026-07-17: Live agents terminate through a strict provider-side `submit_final` tool. OpenAI preserves native `response.output` continuations (including reasoning items); Anthropic preserves assistant tool-use blocks followed immediately by user tool-result blocks.
 - 2026-07-17: Provider/model identity, raw messages, tokens, provider turns, and explicit-price cost estimates are persisted per episode. Provider failures remain structured failures and are never substituted.
 - 2026-07-17: Deterministic doubles used by the offline test suite live only under `tests/` and enter orchestration through explicit dependency injection.
+- 2026-07-17: Cross-model runs generate one live-proposed, validated random corpus and reuse it for every model. Manual and random inputs are therefore matched; failure-directed inputs remain model-adaptive.
 - 2026-07-17: Quick manual selection is round-robin by reviewed family. Configuration scenarios expose the required numeric value through ordinary logs rather than hidden oracle state.
 - 2026-07-17: Interrupted runs reuse exact completed model outcomes, including policy failures, and retry only provider/API runtime errors to prevent selective resampling.
 - 2026-07-17: Canonical signatures derive their semantic claim dimension from the failed outcome predicate instead of final-claim ordering.

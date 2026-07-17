@@ -100,3 +100,29 @@ Artifacts:
 
 Because the random source in that historical run predates the live-only proposal migration, a
 new post-migration experiment is required before using it to compare scenario-source quality.
+
+## Six-model suite — implemented 2026-07-17
+
+- Added equal-budget configs for GPT-5.6 Sol, GPT-5, GPT-5 mini, Claude Opus 4.8, Claude Sonnet 5,
+  and the pinned Claude Haiku 4.5 snapshot.
+- Verified model IDs and explicit token rates against current official provider documentation.
+- Added one sequential `scripts/run_model_suite.sh` command that checks both credentials, creates
+  one live-proposed shared random corpus, runs all six models, and renders the combined report.
+- Added shared-corpus loading and validation so every model receives identical manual and random
+  cases while its failure-directed arm remains adaptive to its own observed failures.
+- Corrected OpenAI cache-write pricing to zero because OpenAI bills cached input reads rather than
+  a separate Anthropic-style cache-write line item.
+
+TDD and final gates:
+
+```text
+model-suite tests before implementation                     failed (missing configs/runner)
+shared-random-corpus test before implementation              failed (unsupported config/path)
+uv run pytest tests/unit/test_model_suite.py \
+  tests/unit/execution/test_experiment.py -q                 passed (7)
+bash -n scripts/run_model_suite.sh                           passed
+uv run ruff format --check .                                 passed (75 files)
+uv run ruff check .                                          passed
+uv run mypy src/evalforge                                    passed (48 source files)
+uv run pytest --cov=evalforge --cov-report=term-missing      passed (62, 2 deselected, 90%)
+```

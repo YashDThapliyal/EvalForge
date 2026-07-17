@@ -46,7 +46,7 @@ uv run evalforge run \
   --model gpt-5.6-sol \
   --input-cost-per-million 5.0 \
   --cached-input-cost-per-million 0.5 \
-  --cache-write-cost-per-million 6.25 \
+  --cache-write-cost-per-million 0.0 \
   --output-cost-per-million 30.0
 uv run evalforge inspect --experiment artifacts/<experiment_id> --episode <episode_id>
 ```
@@ -140,3 +140,6 @@ The checked-in configs use explicit models and token prices. `configs/quick.yaml
 The deterministic verifier could later supply an RL reward or environment signal, but training, policy optimization, and fine-tuning are explicitly outside this MVP.
 
 See [architecture](docs/architecture.md), [experiment design](docs/experiment.md), and [implementation decisions](docs/decisions.md).
+
+For the checked-in six-model OpenAI/Anthropic benchmark and unattended run command, see the
+[model-suite guide](docs/model_suite.md).
