@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from pathlib import Path
 
 import yaml
@@ -11,7 +12,6 @@ from pydantic import BaseModel
 from evalforge.agents.anthropic_agent import AnthropicAgent
 from evalforge.agents.base import Agent
 from evalforge.agents.openai_agent import OpenAIAgent
-from evalforge.agents.scripted import ScriptedBaselineAgent
 from evalforge.config import ExperimentConfig
 from evalforge.domain.scenario import ScenarioSpec, SourceMethod
 from evalforge.execution.artifacts import atomic_write
@@ -19,11 +19,12 @@ from evalforge.execution.episode import EpisodeResult, persist_episode, run_epis
 from evalforge.reporting.metrics import ExperimentMetrics, SourceMetrics, compute_source_metrics
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
 from evalforge.scenarios.loader import load_scenarios, write_scenario
-from evalforge.scenarios.manual import FAMILIES, build_manual_scenario
+from evalforge.scenarios.manual import FAMILIES
+from evalforge.scenarios.openai_proposer import OpenAIScenarioProposer
 from evalforge.scenarios.random_generator import (
     GenerationStats,
-    ProgrammaticProposer,
     RandomScenarioGenerator,
+    ScenarioProposer,
 )
 from evalforge.serialization import canonical_json
 from evalforge.verification.engine import verify_episode
@@ -44,11 +45,19 @@ class ExperimentResult(BaseModel):
 class ExperimentRunner:
     """Run manual, random, and adaptive failure-directed sources fairly."""
 
-    def __init__(self, config: ExperimentConfig):
+    def __init__(
+        self,
+        config: ExperimentConfig,
+        *,
+        agent_factory: Callable[[], Agent] | None = None,
+        random_proposer: ScenarioProposer | None = None,
+    ):
         self.config = config
+        self._injected_agent_factory = agent_factory
+        self._injected_random_proposer = random_proposer
 
     def run(self) -> ExperimentResult:
-        """Execute the complete offline comparison with deterministic ordering."""
+        """Execute the complete live-provider comparison with deterministic ordering."""
 
         experiment_id = self._experiment_id()
         root = Path(self.config.output_dir) / experiment_id
@@ -67,7 +76,7 @@ class ExperimentRunner:
         budget = self.config.scenarios_per_source
         manual = self._select_manual(load_scenarios(Path("scenarios/manual")), budget)
         manual_stats = GenerationStats(attempted=budget, accepted=len(manual))
-        random_result = RandomScenarioGenerator(ProgrammaticProposer()).generate(
+        random_result = RandomScenarioGenerator(self._random_proposer()).generate(
             count=budget, seed=self.config.seed
         )
         if len(manual) != budget or len(random_result.accepted) != budget:
@@ -231,27 +240,11 @@ class ExperimentRunner:
     def _failure_directed_seed(self, index: int) -> ScenarioSpec:
         """Return deterministic validated seeds until this model reveals a target failure."""
 
-        if index == 0:
-            family = "lost_confirmation"
-            variant = self.config.seed % 5
-            scenario_id = f"fd_seed_{self.config.seed}"
-        else:
-            families = (
-                "ambiguous_rollback",
-                "non_idempotent_incident",
-                "permission_limited",
-                "conflicting_monitoring",
-                "stale_monitoring",
-                "distractor_service",
-                "incorrect_config",
-                "unrelated_invariant",
-                "bad_deployment",
-            )
-            family = families[(index - 1) % len(families)]
-            variant = (self.config.seed + (index - 1) // len(families)) % 5
-            scenario_id = f"fd_seed_{family}_{variant}_{index:03d}"
-        seed = build_manual_scenario(family, variant)
-        seed.scenario_id = scenario_id
+        pool = self._select_manual(load_scenarios(Path("scenarios/manual")), 50)
+        if index >= len(pool):
+            raise RuntimeError("Validated failure-directed seed pool is exhausted")
+        seed = pool[index].model_copy(deep=True)
+        seed.scenario_id = f"fd_seed_{seed.scenario_id}_{index:03d}"
         seed.source_method = SourceMethod.FAILURE_DIRECTED
         seed.parent_scenario_id = None
         seed.parent_failure_signature = None
@@ -287,14 +280,9 @@ class ExperimentRunner:
         return f"evalforge-seed{self.config.seed}-b{self.config.scenarios_per_source}-{digest}"
 
     def _agent(self) -> Agent:
-        if self.config.agent == "scripted":
-            return ScriptedBaselineAgent()
+        if self._injected_agent_factory is not None:
+            return self._injected_agent_factory()
         if self.config.agent == "openai":
-            assert self.config.model is not None
-            assert self.config.input_cost_per_million is not None
-            assert self.config.cached_input_cost_per_million is not None
-            assert self.config.cache_write_cost_per_million is not None
-            assert self.config.output_cost_per_million is not None
             return OpenAIAgent(
                 model=self.config.model,
                 max_output_tokens=self.config.max_output_tokens,
@@ -304,11 +292,6 @@ class ExperimentRunner:
                 output_cost_per_million=self.config.output_cost_per_million,
             )
         if self.config.agent == "anthropic":
-            assert self.config.model is not None
-            assert self.config.input_cost_per_million is not None
-            assert self.config.cached_input_cost_per_million is not None
-            assert self.config.cache_write_cost_per_million is not None
-            assert self.config.output_cost_per_million is not None
             return AnthropicAgent(
                 model=self.config.model,
                 max_output_tokens=self.config.max_output_tokens,
@@ -318,3 +301,12 @@ class ExperimentRunner:
                 output_cost_per_million=self.config.output_cost_per_million,
             )
         raise ValueError(f"Unsupported experiment agent: {self.config.agent}")
+
+    def _random_proposer(self) -> ScenarioProposer:
+        """Return the explicit live proposer or an explicitly injected test double."""
+
+        if self._injected_random_proposer is not None:
+            return self._injected_random_proposer
+        if self.config.random_proposer == "openai":
+            return OpenAIScenarioProposer(model=self.config.random_proposer_model)
+        raise ValueError(f"Unsupported random proposer: {self.config.random_proposer}")

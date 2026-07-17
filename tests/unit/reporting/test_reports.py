@@ -8,11 +8,26 @@ from evalforge.execution.experiment import ExperimentRunner
 from evalforge.reporting.html import generate_html_report
 from evalforge.reporting.inspect import render_failure_timeline
 from evalforge.reporting.markdown import generate_markdown_report
+from tests.support import (
+    LIVE_CONFIG_FIELDS,
+    FixtureScenarioProposer,
+    UnresolvedTestAgent,
+)
 
 
 def _experiment(tmp_path: Path) -> Path:
+    config = ExperimentConfig(
+        seed=7,
+        scenarios_per_source=2,
+        output_dir=str(tmp_path),
+        **LIVE_CONFIG_FIELDS,  # type: ignore[arg-type]
+    )
     return (
-        ExperimentRunner(ExperimentConfig(seed=7, scenarios_per_source=2, output_dir=str(tmp_path)))
+        ExperimentRunner(
+            config,
+            agent_factory=UnresolvedTestAgent,
+            random_proposer=FixtureScenarioProposer(),
+        )
         .run()
         .artifact_dir
     )

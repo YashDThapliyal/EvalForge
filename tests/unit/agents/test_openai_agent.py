@@ -9,6 +9,13 @@ from evalforge.agents.openai_agent import AgentProtocolError, LiveConfigurationE
 from evalforge.scenarios.manual import build_manual_scenario
 from evalforge.simulator.engine import Simulator
 
+PRICING = {
+    "input_cost_per_million": 5.0,
+    "cached_input_cost_per_million": 0.5,
+    "cache_write_cost_per_million": 6.25,
+    "output_cost_per_million": 30.0,
+}
+
 
 class FakeResponses:
     def __init__(self, outputs: list[dict[str, object]]):
@@ -62,7 +69,7 @@ def test_live_adapter_maps_tools_executes_native_call_and_preserves_raw_messages
     scenario = build_manual_scenario("bad_deployment", 0)
     request = AgentRequest.model_validate(scenario.public_view().model_dump())
     simulator = Simulator(scenario.initial_world, scenario.fault_plan)
-    final = OpenAIAgent(client=client, model="fake-model").run(
+    final = OpenAIAgent(client=client, model="fake-model", **PRICING).run(
         request, ToolRegistry(simulator, "operator", 5)
     )
     assert final.summary == "Inspected"
@@ -103,7 +110,7 @@ def test_live_adapter_accounts_for_provider_usage() -> None:
     scenario = build_manual_scenario("bad_deployment", 0)
     request = AgentRequest.model_validate(scenario.public_view().model_dump())
     simulator = Simulator(scenario.initial_world, scenario.fault_plan)
-    agent = OpenAIAgent(client=client, model="gpt-5.6-sol")
+    agent = OpenAIAgent(client=client, model="gpt-5.6-sol", **PRICING)
     agent.run(request, ToolRegistry(simulator, "operator", 5))
     assert agent.usage.provider == "openai"
     assert agent.usage.model == "gpt-5.6-sol"
@@ -133,8 +140,8 @@ def test_malformed_live_final_is_structured_and_no_key_message_is_actionable(mon
     request = AgentRequest.model_validate(scenario.public_view().model_dump())
     tools = ToolRegistry(Simulator(scenario.initial_world), "operator", 2)
     with pytest.raises(AgentProtocolError, match="malformed final"):
-        OpenAIAgent(client=client).run(request, tools)
+        OpenAIAgent(model="fake-model", client=client, **PRICING).run(request, tools)
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with pytest.raises(LiveConfigurationError, match="OPENAI_API_KEY"):
-        OpenAIAgent()
+        OpenAIAgent(model="fake-model", **PRICING)

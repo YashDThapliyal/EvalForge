@@ -8,6 +8,13 @@ from evalforge.agents.openai_agent import LiveConfigurationError
 from evalforge.scenarios.manual import build_manual_scenario
 from evalforge.simulator.engine import Simulator
 
+PRICING = {
+    "input_cost_per_million": 5.0,
+    "cached_input_cost_per_million": 0.5,
+    "cache_write_cost_per_million": 6.25,
+    "output_cost_per_million": 25.0,
+}
+
 
 class FakeMessages:
     def __init__(self, outputs: list[dict[str, object]]):
@@ -57,7 +64,7 @@ def test_anthropic_agent_uses_canonical_tool_result_loop_and_final_tool() -> Non
     scenario = build_manual_scenario("bad_deployment", 0)
     request = AgentRequest.model_validate(scenario.public_view().model_dump())
     simulator = Simulator(scenario.initial_world, scenario.fault_plan)
-    agent = AnthropicAgent(client=client, model="claude-opus-4-8")
+    agent = AnthropicAgent(client=client, model="claude-opus-4-8", **PRICING)
     final = agent.run(request, ToolRegistry(simulator, "operator", 5))
 
     assert final.summary == "Inspected"
@@ -82,4 +89,4 @@ def test_anthropic_agent_uses_canonical_tool_result_loop_and_final_tool() -> Non
 def test_anthropic_agent_requires_explicit_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(LiveConfigurationError, match="ANTHROPIC_API_KEY"):
-        AnthropicAgent()
+        AnthropicAgent(model="fake-model", **PRICING)

@@ -7,12 +7,32 @@ import yaml
 
 from evalforge.config import ExperimentConfig
 from evalforge.execution.experiment import ExperimentRunner
+from tests.support import (
+    LIVE_CONFIG_FIELDS,
+    FixtureScenarioProposer,
+    UnresolvedTestAgent,
+)
 
 
-def test_equal_budget_deterministic_offline_experiment(tmp_path: Path) -> None:
-    config = ExperimentConfig(seed=7, scenarios_per_source=3, output_dir=str(tmp_path))
-    first = ExperimentRunner(config).run()
-    second = ExperimentRunner(config).run()
+def _runner(tmp_path: Path, *, seed: int, budget: int) -> ExperimentRunner:
+    config = ExperimentConfig(
+        seed=seed,
+        scenarios_per_source=budget,
+        output_dir=str(tmp_path),
+        **LIVE_CONFIG_FIELDS,  # type: ignore[arg-type]
+    )
+    return ExperimentRunner(
+        config,
+        agent_factory=UnresolvedTestAgent,
+        random_proposer=FixtureScenarioProposer(),
+    )
+
+
+def test_equal_budget_experiment_is_deterministic_with_explicit_test_doubles(
+    tmp_path: Path,
+) -> None:
+    first = _runner(tmp_path, seed=7, budget=3).run()
+    second = _runner(tmp_path, seed=7, budget=3).run()
     assert first.experiment_id == second.experiment_id
     assert first.metrics == second.metrics
     assert set(first.metrics.sources) == {"manual", "random", "failure_directed"}
@@ -30,16 +50,13 @@ def test_equal_budget_deterministic_offline_experiment(tmp_path: Path) -> None:
 
 
 def test_quick_manual_budget_is_stratified_across_all_families(tmp_path: Path) -> None:
-    result = ExperimentRunner(
-        ExperimentConfig(seed=7, scenarios_per_source=12, output_dir=str(tmp_path))
-    ).run()
+    result = _runner(tmp_path, seed=7, budget=12).run()
     families = [str(item.metadata["family"]) for item in result.scenario_order["manual"]]
     assert len(set(families[:10])) == 10
 
 
 def test_failure_directed_lineage_uses_only_prior_own_run_failures(tmp_path: Path) -> None:
-    config = ExperimentConfig(seed=19, scenarios_per_source=4, output_dir=str(tmp_path))
-    result = ExperimentRunner(config).run()
+    result = _runner(tmp_path, seed=19, budget=4).run()
     fd = result.scenario_order["failure_directed"]
     prior: set[str] = set()
     for index, scenario in enumerate(fd):
@@ -54,9 +71,7 @@ def test_failure_directed_lineage_uses_only_prior_own_run_failures(tmp_path: Pat
 def test_adaptive_source_uses_more_validated_seeds_when_no_failure_exists(
     tmp_path: Path, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
-    runner = ExperimentRunner(
-        ExperimentConfig(seed=7, scenarios_per_source=4, output_dir=str(tmp_path))
-    )
+    runner = _runner(tmp_path, seed=7, budget=4)
 
     def passing_episode(*args: object, **kwargs: object) -> object:
         episode_id = str(kwargs["episode_id"])

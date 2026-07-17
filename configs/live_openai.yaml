@@ -5,8 +5,9 @@ model: gpt-5.6-sol
 max_agent_steps: 10
 max_output_tokens: 4096
 output_dir: artifacts/live
-random_proposer: programmatic
-failure_directed_proposer: programmatic
+random_proposer: openai
+random_proposer_model: gpt-5.6-sol
+failure_directed_proposer: bounded_mutation
 manual_selection_strategy: stratified-v1
 input_cost_per_million: 5.0
 cached_input_cost_per_million: 0.5

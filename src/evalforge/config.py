@@ -3,62 +3,32 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExperimentConfig(BaseModel):
-    """Configuration shared by offline experiment sources."""
+    """Explicit live-provider experiment configuration with no fallback defaults."""
 
     model_config = ConfigDict(extra="forbid")
 
     seed: int = 7
     scenarios_per_source: int = Field(default=12, ge=1)
-    agent: str = "scripted"
-    model: str | None = None
+    agent: Literal["openai", "anthropic"]
+    model: str = Field(min_length=1)
     max_agent_steps: int = Field(default=10, ge=1)
     max_output_tokens: int = Field(default=4096, ge=256)
     output_dir: str = "artifacts"
-    random_proposer: str = "programmatic"
-    failure_directed_proposer: str = "programmatic"
+    random_proposer: Literal["openai"]
+    random_proposer_model: str = Field(min_length=1)
+    failure_directed_proposer: Literal["bounded_mutation"]
     manual_selection_strategy: str = "stratified-v1"
-    input_cost_per_million: float | None = Field(default=None, ge=0)
-    cached_input_cost_per_million: float | None = Field(default=None, ge=0)
-    cache_write_cost_per_million: float | None = Field(default=None, ge=0)
-    output_cost_per_million: float | None = Field(default=None, ge=0)
-
-    @model_validator(mode="after")
-    def resolve_live_defaults(self) -> ExperimentConfig:
-        """Materialize provider model and pricing so artifacts are reproducible."""
-
-        defaults: dict[str, tuple[str, float, float, float, float]] = {
-            "openai": ("gpt-5.6-sol", 5.0, 0.5, 6.25, 30.0),
-            "anthropic": ("claude-opus-4-8", 5.0, 0.5, 6.25, 25.0),
-        }
-        if self.agent == "scripted":
-            return self
-        if self.agent not in defaults:
-            raise ValueError(f"Unsupported experiment agent: {self.agent}")
-        model, input_rate, cached_rate, write_rate, output_rate = defaults[self.agent]
-        self.model = self.model or model
-        self.input_cost_per_million = (
-            input_rate if self.input_cost_per_million is None else self.input_cost_per_million
-        )
-        self.cached_input_cost_per_million = (
-            cached_rate
-            if self.cached_input_cost_per_million is None
-            else self.cached_input_cost_per_million
-        )
-        self.cache_write_cost_per_million = (
-            write_rate
-            if self.cache_write_cost_per_million is None
-            else self.cache_write_cost_per_million
-        )
-        self.output_cost_per_million = (
-            output_rate if self.output_cost_per_million is None else self.output_cost_per_million
-        )
-        return self
+    input_cost_per_million: float = Field(ge=0)
+    cached_input_cost_per_million: float = Field(ge=0)
+    cache_write_cost_per_million: float = Field(ge=0)
+    output_cost_per_million: float = Field(ge=0)
 
 
 def load_experiment_config(path: Path) -> ExperimentConfig:

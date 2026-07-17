@@ -7,6 +7,9 @@ from typing import Protocol, cast
 
 from evalforge.agents.openai_agent import LiveConfigurationError
 from evalforge.domain.scenario import ScenarioSpec
+from evalforge.scenarios.manual import build_manual_scenario
+from evalforge.serialization import canonical_json
+from evalforge.simulator.tools import tool_schemas
 
 
 class ResponsesClient(Protocol):
@@ -22,10 +25,16 @@ class Client(Protocol):
     responses: ResponsesClient
 
 
+class LiveProposalError(RuntimeError):
+    """The live provider could not return a usable scenario proposal."""
+
+
 class OpenAIScenarioProposer:
     """Request complete ScenarioSpec JSON and never execute generated content."""
 
-    def __init__(self, client: Client | None = None, model: str = "gpt-5-mini"):
+    def __init__(self, model: str, client: Client | None = None):
+        if not model.strip():
+            raise LiveConfigurationError("OpenAI proposer model must be explicitly configured")
         if client is None:
             api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
@@ -41,21 +50,34 @@ class OpenAIScenarioProposer:
     def propose(self, attempt: int, seed: int) -> ScenarioSpec:
         """Request one data-only proposal constrained to the versioned schema."""
 
-        raw = self.client.responses.create(
-            model=self.model,
-            input=(
-                f"Create executable cloud-operations stress scenario proposal {attempt} "
-                f"using deterministic seed {seed}. Return schema-conforming data only."
-            ),
-            text={
-                "format": {
-                    "type": "json_schema",
-                    "name": "scenario_spec",
-                    "strict": True,
-                    "schema": ScenarioSpec.model_json_schema(),
-                }
-            },
-        )
+        try:
+            raw = self.client.responses.create(
+                model=self.model,
+                input=(
+                    f"Create complete executable cloud-operations stress scenario proposal "
+                    f"{attempt} using seed {seed}. It must use source_method=random, have no "
+                    "parent lineage, reference only entities present in initial_world, require a "
+                    "meaningful legal oracle mutation, make every declared fault reachable, "
+                    "preserve its invariants, and avoid revealing the hidden repair in task text. "
+                    f"Use only these tools: {canonical_json(tool_schemas())}. Use this shape as "
+                    "an example but create a materially different scenario with a unique "
+                    "scenario_id: "
+                    f"{canonical_json(build_manual_scenario('bad_deployment', seed % 5))}. "
+                    "Return schema-conforming data only."
+                ),
+                text={
+                    "format": {
+                        "type": "json_schema",
+                        "name": "scenario_spec",
+                        # ScenarioSpec contains recursive JsonValue maps. OpenAI strict mode
+                        # rejects arbitrary-key maps, so apply deterministic validation afterward.
+                        "strict": False,
+                        "schema": ScenarioSpec.model_json_schema(),
+                    }
+                },
+            )
+        except Exception as exc:
+            raise LiveProposalError(f"OpenAI scenario proposal failed: {exc}") from exc
         if isinstance(raw, dict):
             output_text = raw.get("output_text")
         elif hasattr(raw, "output_text"):

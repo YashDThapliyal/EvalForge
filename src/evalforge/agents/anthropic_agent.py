@@ -38,14 +38,16 @@ class AnthropicAgent:
 
     def __init__(
         self,
+        model: str,
+        input_cost_per_million: float,
+        cached_input_cost_per_million: float,
+        cache_write_cost_per_million: float,
+        output_cost_per_million: float,
         client: AnthropicClient | None = None,
-        model: str = "claude-opus-4-8",
         max_output_tokens: int = 4096,
-        input_cost_per_million: float = 5.0,
-        cached_input_cost_per_million: float = 0.5,
-        cache_write_cost_per_million: float = 6.25,
-        output_cost_per_million: float = 25.0,
     ):
+        if not model.strip():
+            raise LiveConfigurationError("Anthropic model must be explicitly configured")
         if client is None:
             api_key = os.getenv("ANTHROPIC_API_KEY")
             if not api_key:

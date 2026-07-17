@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from evalforge.agents.scripted import ScriptedBaselineAgent
+from evalforge.agents.base import AgentFinal, ClaimType, FinalClaim, ToolCall
+from evalforge.agents.replay import ReplayAgent
 from evalforge.execution.episode import run_episode
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
 from evalforge.scenarios.fingerprint import fingerprint
@@ -26,7 +27,23 @@ def test_all_bounded_mutation_operator_families_are_declared() -> None:
 
 def test_failure_directed_children_are_valid_material_deterministic_descendants() -> None:
     parent = build_manual_scenario("lost_confirmation", 0)
-    episode = run_episode(parent, ScriptedBaselineAgent())
+    episode = run_episode(
+        parent,
+        ReplayAgent(
+            [ToolCall(tool_name="restart_service", arguments={"service_id": "payments-api"})],
+            AgentFinal(
+                status="resolved",
+                summary="Restarted",
+                claims=[
+                    FinalClaim(
+                        claim_type=ClaimType.SERVICE_HEALTH,
+                        service_id="payments-api",
+                        value="healthy",
+                    )
+                ],
+            ),
+        ),
+    )
     assert episode.failure is not None
     first = FailureDirectedScenarioGenerator().generate(parent, episode.failure, count=6, seed=17)
     second = FailureDirectedScenarioGenerator().generate(parent, episode.failure, count=6, seed=17)

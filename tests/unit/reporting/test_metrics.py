@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from evalforge.agents.base import ProviderUsage
-from evalforge.agents.scripted import ScriptedBaselineAgent
+from evalforge.agents.oracle import OracleAgent
 from evalforge.execution.episode import run_episode
 from evalforge.reporting.metrics import compute_source_metrics
 from evalforge.scenarios.manual import build_manual_scenario
@@ -13,7 +13,7 @@ def test_metrics_match_episode_fixtures_and_discovery_curve_is_monotonic() -> No
         build_manual_scenario("lost_confirmation", 0),
         build_manual_scenario("non_idempotent_incident", 0),
     ]
-    episodes = [run_episode(item, ScriptedBaselineAgent()) for item in scenarios]
+    episodes = [run_episode(item, OracleAgent(item.oracle_plan)) for item in scenarios]
     episodes[0].provider_usage = ProviderUsage(
         provider="openai",
         model="gpt-5.6-sol",

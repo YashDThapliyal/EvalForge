@@ -1,4 +1,4 @@
-"""Failure-feedback-free offline random scenario generation."""
+"""Validation and deduplication for failure-feedback-free scenario proposals."""
 
 from __future__ import annotations
 
@@ -7,9 +7,8 @@ from typing import Protocol
 
 from pydantic import BaseModel, Field
 
-from evalforge.domain.scenario import ScenarioSpec, SourceMethod
+from evalforge.domain.scenario import ScenarioSpec
 from evalforge.scenarios.fingerprint import fingerprint
-from evalforge.scenarios.manual import FAMILIES, build_manual_scenario
 from evalforge.scenarios.validator import ScenarioValidator
 
 
@@ -42,30 +41,6 @@ class GenerationResult(BaseModel):
 
     accepted: list[ScenarioSpec]
     stats: GenerationStats
-
-
-class ProgrammaticProposer:
-    """Deterministic offline proposer spanning curated behavioral templates."""
-
-    def propose(self, attempt: int, seed: int) -> ScenarioSpec:
-        """Build one data-only proposal without any tested-agent feedback."""
-
-        family = FAMILIES[attempt % len(FAMILIES)]
-        variant = (attempt // len(FAMILIES)) % 5
-        scenario = build_manual_scenario(family, variant)
-        scenario.scenario_id = f"random_{seed}_{attempt:04d}"
-        scenario.title = f"Programmatic random proposal {attempt}"
-        scenario.seed = seed * 10_000 + attempt
-        scenario.source_method = SourceMethod.RANDOM
-        scenario.tags = [family, "programmatic_random", f"variant_{variant}"]
-        scenario.metadata = {
-            "family": family,
-            "variant": variant,
-            "proposer": "programmatic",
-            "attempt": attempt,
-            "generator_seed": seed,
-        }
-        return scenario
 
 
 class RandomScenarioGenerator:

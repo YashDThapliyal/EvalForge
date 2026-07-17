@@ -3,7 +3,6 @@ from __future__ import annotations
 from evalforge.agents.base import AgentFinal, AgentRequest, ClaimType, FinalClaim, ToolCall
 from evalforge.agents.oracle import OracleAgent
 from evalforge.agents.replay import ReplayAgent
-from evalforge.agents.scripted import ScriptedBaselineAgent
 from evalforge.execution.episode import run_episode
 from evalforge.scenarios.manual import build_manual_scenario
 
@@ -20,17 +19,6 @@ def test_oracle_and_replay_agents_execute_declared_calls() -> None:
     assert [e.tool_name for e in replay_episode.events] == [
         e.tool_name for e in oracle_episode.events
     ]
-
-
-def test_scripted_agent_solves_normal_case_and_fails_by_general_rule() -> None:
-    normal = run_episode(build_manual_scenario("bad_deployment", 0), ScriptedBaselineAgent())
-    assert normal.final is not None and normal.final.status == "resolved"
-    assert normal.final_world.services["payments-api"].current_version == "v1"
-
-    stress = run_episode(
-        build_manual_scenario("non_idempotent_incident", 0), ScriptedBaselineAgent()
-    )
-    assert len(stress.final_world.incidents) == 2
 
 
 def test_agent_request_cannot_contain_private_scenario_fields() -> None:

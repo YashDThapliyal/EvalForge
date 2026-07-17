@@ -5,17 +5,15 @@ import inspect
 from evalforge.domain.scenario import SourceMethod
 from evalforge.scenarios.fingerprint import fingerprint
 from evalforge.scenarios.manual import build_manual_scenario
-from evalforge.scenarios.random_generator import (
-    ProgrammaticProposer,
-    RandomScenarioGenerator,
-)
+from evalforge.scenarios.random_generator import RandomScenarioGenerator
 from evalforge.scenarios.validator import ScenarioValidator
+from tests.support import FixtureScenarioProposer
 
 
-def test_random_generation_is_offline_valid_deterministic_and_feedback_free() -> None:
+def test_random_generation_validates_injected_proposals_without_failure_feedback() -> None:
     assert "failure" not in inspect.signature(RandomScenarioGenerator.generate).parameters
-    first = RandomScenarioGenerator(ProgrammaticProposer()).generate(count=12, seed=7)
-    second = RandomScenarioGenerator(ProgrammaticProposer()).generate(count=12, seed=7)
+    first = RandomScenarioGenerator(FixtureScenarioProposer()).generate(count=12, seed=7)
+    second = RandomScenarioGenerator(FixtureScenarioProposer()).generate(count=12, seed=7)
     assert [fingerprint(item) for item in first.accepted] == [
         fingerprint(item) for item in second.accepted
     ]
@@ -42,8 +40,8 @@ def test_invalid_and_duplicate_proposals_do_not_consume_budget() -> None:
     assert result.stats.rejected >= 1
     assert "REFERENTIAL_INTEGRITY" in result.stats.rejection_reasons
 
-    duplicate = ProgrammaticProposer().propose(0, 7)
-    result = RandomScenarioGenerator(ProgrammaticProposer()).generate(
+    duplicate = FixtureScenarioProposer().propose(0, 7)
+    result = RandomScenarioGenerator(FixtureScenarioProposer()).generate(
         count=2, seed=7, existing_fingerprints={fingerprint(duplicate)}
     )
     assert result.stats.accepted == 2

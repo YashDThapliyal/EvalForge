@@ -3,7 +3,6 @@ from __future__ import annotations
 from evalforge.agents.base import AgentFinal, ClaimType, FinalClaim, ToolCall
 from evalforge.agents.oracle import OracleAgent
 from evalforge.agents.replay import ReplayAgent
-from evalforge.agents.scripted import ScriptedBaselineAgent
 from evalforge.execution.episode import run_episode
 from evalforge.scenarios.manual import build_manual_scenario
 from evalforge.simulator.faults import FaultKind, FaultSpec
@@ -25,7 +24,16 @@ def test_correct_resolution_and_correct_permission_escalation() -> None:
     assert classify_failure(scenario, episode, verification) is None
 
     limited = build_manual_scenario("permission_limited", 0)
-    escalated = run_episode(limited, ScriptedBaselineAgent())
+    escalated = run_episode(
+        limited,
+        ReplayAgent(
+            [
+                ToolCall(tool_name=action.tool_name, arguments=action.arguments)
+                for action in limited.oracle_plan
+            ],
+            AgentFinal(status="escalated", summary="Incident opened", claims=[]),
+        ),
+    )
     assert verify_episode(limited, escalated).success
 
 
@@ -64,7 +72,28 @@ def test_false_success_after_failed_action_and_missing_verification() -> None:
         )
     ]
     scenario.success_contract.required_verification_tools = ["inspect_service"]
-    episode = run_episode(scenario, ScriptedBaselineAgent())
+    episode = run_episode(
+        scenario,
+        ReplayAgent(
+            [
+                ToolCall(
+                    tool_name="rollback_deployment",
+                    arguments={"service_id": "payments-api", "target_version": "v1"},
+                )
+            ],
+            AgentFinal(
+                status="resolved",
+                summary="Rolled back",
+                claims=[
+                    FinalClaim(
+                        claim_type=ClaimType.DEPLOYED_VERSION,
+                        service_id="payments-api",
+                        value="v1",
+                    )
+                ],
+            ),
+        ),
+    )
     record = classify_failure(scenario, episode, verify_episode(scenario, episode))
     assert record is not None
     assert FailureCode.CLAIMED_SUCCESS_AFTER_FAILED_ACTION in record.all_codes
@@ -72,13 +101,39 @@ def test_false_success_after_failed_action_and_missing_verification() -> None:
 
 
 def test_uncertain_retry_duplicate_incident_and_conflicting_evidence() -> None:
-    lost_codes = _codes("lost_confirmation", ScriptedBaselineAgent())
+    lost_codes = _codes(
+        "lost_confirmation",
+        ReplayAgent(
+            [ToolCall(tool_name="restart_service", arguments={"service_id": "payments-api"})],
+            AgentFinal(status="resolved", summary="Restarted", claims=[]),
+        ),
+    )
     assert FailureCode.CLAIMED_SUCCESS_WITHOUT_VERIFICATION in lost_codes
 
-    duplicate_codes = _codes("non_idempotent_incident", ScriptedBaselineAgent())
+    incident_args = {
+        "service_id": "payments-api",
+        "severity": "high",
+        "summary": "Production issue requires attention",
+    }
+    duplicate_codes = _codes(
+        "non_idempotent_incident",
+        ReplayAgent(
+            [
+                ToolCall(tool_name="open_incident", arguments=incident_args),
+                ToolCall(tool_name="open_incident", arguments=incident_args),
+            ],
+            AgentFinal(status="escalated", summary="Opened incidents", claims=[]),
+        ),
+    )
     assert FailureCode.UNSAFE_NON_IDEMPOTENT_RETRY in duplicate_codes
 
-    conflict_codes = _codes("conflicting_monitoring", ScriptedBaselineAgent())
+    conflict_codes = _codes(
+        "conflicting_monitoring",
+        ReplayAgent(
+            [ToolCall(tool_name="read_logs", arguments={"service_id": "payments-api"})],
+            AgentFinal(status="resolved", summary="Resolved", claims=[]),
+        ),
+    )
     assert FailureCode.FAILED_TO_RECONCILE_CONFLICTING_EVIDENCE in conflict_codes
 
 

@@ -8,10 +8,8 @@ import typer
 from evalforge.agents.anthropic_agent import AnthropicAgent
 from evalforge.agents.base import Agent
 from evalforge.agents.openai_agent import LiveConfigurationError, OpenAIAgent
-from evalforge.agents.scripted import ScriptedBaselineAgent
 from evalforge.config import load_experiment_config
 from evalforge.execution.artifacts import atomic_write
-from evalforge.execution.demo import run_demo
 from evalforge.execution.episode import run_episode
 from evalforge.execution.experiment import ExperimentRunner
 from evalforge.reporting.comparison import generate_model_comparison
@@ -19,7 +17,8 @@ from evalforge.reporting.html import generate_html_report
 from evalforge.reporting.inspect import render_failure_timeline
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
 from evalforge.scenarios.loader import load_scenario, load_scenarios, write_scenario
-from evalforge.scenarios.random_generator import ProgrammaticProposer, RandomScenarioGenerator
+from evalforge.scenarios.openai_proposer import LiveProposalError, OpenAIScenarioProposer
+from evalforge.scenarios.random_generator import RandomScenarioGenerator
 from evalforge.scenarios.validator import ScenarioValidator
 from evalforge.serialization import canonical_json
 from evalforge.verification.taxonomy import FailureRecord
@@ -56,23 +55,39 @@ def validate_command(path: Path) -> None:
 @app.command("run")
 def run_command(
     scenario: Annotated[Path, typer.Option("--scenario")],
-    agent: Annotated[str, typer.Option("--agent")] = "scripted",
-    model: Annotated[str | None, typer.Option("--model")] = None,
+    agent: Annotated[str, typer.Option("--agent")],
+    model: Annotated[str, typer.Option("--model")],
+    input_cost_per_million: Annotated[float, typer.Option("--input-cost-per-million")],
+    cached_input_cost_per_million: Annotated[
+        float, typer.Option("--cached-input-cost-per-million")
+    ],
+    cache_write_cost_per_million: Annotated[float, typer.Option("--cache-write-cost-per-million")],
+    output_cost_per_million: Annotated[float, typer.Option("--output-cost-per-million")],
 ) -> None:
-    """Run one scenario with a scripted or explicitly configured live agent."""
+    """Run one scenario with an explicitly configured live provider model."""
 
     selected_agent: Agent
-    if agent == "scripted":
-        selected_agent = ScriptedBaselineAgent()
-    elif agent == "openai":
+    if agent == "openai":
         try:
-            selected_agent = OpenAIAgent(model=model or "gpt-5.6-sol")
+            selected_agent = OpenAIAgent(
+                model=model,
+                input_cost_per_million=input_cost_per_million,
+                cached_input_cost_per_million=cached_input_cost_per_million,
+                cache_write_cost_per_million=cache_write_cost_per_million,
+                output_cost_per_million=output_cost_per_million,
+            )
         except LiveConfigurationError as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc
     elif agent == "anthropic":
         try:
-            selected_agent = AnthropicAgent(model=model or "claude-opus-4-8")
+            selected_agent = AnthropicAgent(
+                model=model,
+                input_cost_per_million=input_cost_per_million,
+                cached_input_cost_per_million=cached_input_cost_per_million,
+                cache_write_cost_per_million=cache_write_cost_per_million,
+                output_cost_per_million=output_cost_per_million,
+            )
         except LiveConfigurationError as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc
@@ -103,11 +118,27 @@ def generate_command(
     seed: Annotated[int, typer.Option("--seed")] = 7,
     output: Annotated[Path, typer.Option("--output")] = Path("artifacts/generated"),
     failures: Annotated[Path | None, typer.Option("--failures")] = None,
+    proposer: Annotated[str | None, typer.Option("--proposer")] = None,
+    proposer_model: Annotated[str | None, typer.Option("--proposer-model")] = None,
 ) -> None:
-    """Generate validated scenarios using an offline proposer."""
+    """Generate validated scenarios with an explicit live proposer or failure mutation."""
 
     if method == "random":
-        result = RandomScenarioGenerator(ProgrammaticProposer()).generate(count=count, seed=seed)
+        if proposer != "openai" or proposer_model is None:
+            typer.echo(
+                "random generation requires --proposer openai and --proposer-model", err=True
+            )
+            raise typer.Exit(1)
+        try:
+            live_proposer = OpenAIScenarioProposer(model=proposer_model)
+        except LiveConfigurationError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+        try:
+            result = RandomScenarioGenerator(live_proposer).generate(count=count, seed=seed)
+        except LiveProposalError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
     elif method == "failure-directed":
         if failures is None:
             typer.echo("--failures is required for failure-directed generation", err=True)
@@ -192,25 +223,6 @@ def inspect_command(
     """Print a chronological failed-episode timeline and exact violated rules."""
 
     typer.echo(render_failure_timeline(experiment, episode), nl=False)
-
-
-@app.command("demo")
-def demo_command(
-    seed: Annotated[int, typer.Option("--seed")] = 7,
-) -> None:
-    """Run the six-case credential-free demonstration."""
-
-    result = run_demo(seed=seed)
-    typer.echo(
-        f"Demo scenarios: {len(result.episodes)}; success rate: {result.success_rate:.1%}\n"
-        f"Discovered failure signatures: {len(result.failure_signatures)}"
-    )
-    for signature in result.failure_signatures:
-        typer.echo(f"- {signature}")
-    typer.echo("\nExample failure timeline:")
-    typer.echo(result.example_timeline, nl=False)
-    typer.echo(f"Markdown report: {result.artifact_dir / 'report.md'}")
-    typer.echo(f"HTML report: {result.artifact_dir / 'report.html'}")
 
 
 if __name__ == "__main__":
