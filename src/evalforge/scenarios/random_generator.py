@@ -54,15 +54,18 @@ class RandomScenarioGenerator:
         count: int,
         seed: int,
         existing_fingerprints: set[str] | None = None,
+        max_attempts: int | None = None,
     ) -> GenerationResult:
         """Generate exactly `count` accepted valid scenarios when feasible."""
 
+        if max_attempts is not None and max_attempts < 1:
+            raise ValueError("max_attempts must be positive")
         known = set(existing_fingerprints or set())
         accepted: list[ScenarioSpec] = []
         reasons: Counter[str] = Counter()
         attempted = rejected = duplicates = 0
-        max_attempts = max(count * 30, 30)
-        while len(accepted) < count and attempted < max_attempts:
+        attempt_limit = max(count * 30, 30) if max_attempts is None else max_attempts
+        while len(accepted) < count and attempted < attempt_limit:
             proposal = self.proposer.propose(attempted, seed)
             attempted += 1
             proposal_fingerprint = fingerprint(proposal)

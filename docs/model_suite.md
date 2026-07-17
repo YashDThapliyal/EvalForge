@@ -38,7 +38,9 @@ latency without launching three simultaneous requests against either provider's 
 Completed episodes are reused by EvalForge if the same experiment is restarted. The shared random
 corpus is generated only when it does not already exist. Lane output is saved in
 `artifacts/model-suite/logs/openai.log` and `artifacts/model-suite/logs/anthropic.log`. At
-completion, the combined reports are written to:
+runtime, the terminal displays side-by-side episode progress bars and the model currently active
+in each lane; verbose provider output stays in those log files. At completion, the combined
+reports are written to:
 
 ```text
 artifacts/model-suite/comparison/report.md
@@ -53,7 +55,8 @@ Generate the common random corpus once before the first individual model run:
 uv run evalforge generate \
   --method random --count 12 --seed 7 \
   --output artifacts/model-suite/shared-random \
-  --proposer openai --proposer-model gpt-5.6-sol
+  --proposer openai --proposer-model gpt-5.6-sol \
+  --max-attempts 36
 ```
 
 Then run any or all of these commands:
@@ -70,6 +73,19 @@ uv run evalforge experiment --config configs/model_suite/anthropic_haiku_4_5.yam
 The report's estimated model cost covers evaluated-agent token usage. OpenAI calls used to create
 the shared scenario corpus are recorded in generation statistics but are not currently included
 in the episode-token cost totals.
+
+## Expected API cost
+
+Using the prior audited token volumes as a baseline and applying the configured rates, the six
+evaluated-agent runs are expected to cost roughly $7–$9. The one-time 12-scenario OpenAI proposal
+corpus is likely to add approximately $2–$5, so a reasonable expected total is **$10–$14**.
+Provisioning **$20** is prudent, with a **$25 billing alert** for additional protection against
+longer model traces or rejected proposals. This is an estimate rather than a provider-enforced
+dollar cap.
+
+The suite limits proposal generation to 36 attempts and each proposal to 12,000 output tokens.
+If 12 valid scenarios cannot be produced inside that budget, it stops nonzero instead of entering
+an open-ended paid retry loop.
 
 Pricing sources: OpenAI's model pages for
 [`gpt-5`](https://developers.openai.com/api/docs/models/gpt-5) and

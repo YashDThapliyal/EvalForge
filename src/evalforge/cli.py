@@ -120,6 +120,7 @@ def generate_command(
     failures: Annotated[Path | None, typer.Option("--failures")] = None,
     proposer: Annotated[str | None, typer.Option("--proposer")] = None,
     proposer_model: Annotated[str | None, typer.Option("--proposer-model")] = None,
+    max_attempts: Annotated[int | None, typer.Option("--max-attempts")] = None,
 ) -> None:
     """Generate validated scenarios with an explicit live proposer or failure mutation."""
 
@@ -135,7 +136,9 @@ def generate_command(
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc
         try:
-            result = RandomScenarioGenerator(live_proposer).generate(count=count, seed=seed)
+            result = RandomScenarioGenerator(live_proposer).generate(
+                count=count, seed=seed, max_attempts=max_attempts
+            )
         except LiveProposalError as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc

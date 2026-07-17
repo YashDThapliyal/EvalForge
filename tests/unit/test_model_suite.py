@@ -48,6 +48,7 @@ def test_model_suite_runner_includes_every_config_and_comparison() -> None:
         assert f"configs/model_suite/{filename}" in script
     assert "evalforge experiment" in script
     assert "evalforge generate --method random --count 12" in script
+    assert "--max-attempts 36" in script
     assert "evalforge compare" in script
     assert "OPENAI_API_KEY" in script
     assert "ANTHROPIC_API_KEY" in script
@@ -62,3 +63,15 @@ def test_model_suite_runs_two_provider_lanes_in_parallel_then_waits() -> None:
     assert 'wait "$openai_pid"' in script
     assert 'wait "$anthropic_pid"' in script
     assert script.index('wait "$anthropic_pid"') < script.index("evalforge compare")
+
+
+def test_model_suite_displays_episode_progress_bars_without_interleaved_logs() -> None:
+    script = Path("scripts/run_model_suite.sh").read_text(encoding="utf-8")
+    assert "render_progress_bar" in script
+    assert "count_episodes" in script
+    assert "108" in script
+    assert "OpenAI" in script
+    assert "Anthropic" in script
+    assert "openai.log" in script
+    assert "anthropic.log" in script
+    assert "> >(tee" not in script

@@ -29,6 +29,9 @@ class LiveProposalError(RuntimeError):
     """The live provider could not return a usable scenario proposal."""
 
 
+MAX_PROPOSAL_OUTPUT_TOKENS = 12_000
+
+
 class OpenAIScenarioProposer:
     """Request complete ScenarioSpec JSON and never execute generated content."""
 
@@ -53,6 +56,7 @@ class OpenAIScenarioProposer:
         try:
             raw = self.client.responses.create(
                 model=self.model,
+                max_output_tokens=MAX_PROPOSAL_OUTPUT_TOKENS,
                 input=(
                     f"Create complete executable cloud-operations stress scenario proposal "
                     f"{attempt} using seed {seed}. It must use source_method=random, have no "

@@ -33,6 +33,15 @@ class SometimesInvalidProposer:
         return scenario
 
 
+class AlwaysInvalidProposer:
+    def propose(self, attempt: int, seed: int):  # type: ignore[no-untyped-def]
+        scenario = build_manual_scenario("bad_deployment", attempt % 5)
+        scenario.source_method = SourceMethod.RANDOM
+        scenario.scenario_id = f"invalid-{seed}-{attempt}"
+        scenario.oracle_plan[0].arguments["service_id"] = "missing"
+        return scenario
+
+
 def test_invalid_and_duplicate_proposals_do_not_consume_budget() -> None:
     result = RandomScenarioGenerator(SometimesInvalidProposer()).generate(count=3, seed=11)
     assert result.stats.accepted == 3
@@ -46,3 +55,11 @@ def test_invalid_and_duplicate_proposals_do_not_consume_budget() -> None:
     )
     assert result.stats.accepted == 2
     assert result.stats.duplicates >= 1
+
+
+def test_generation_honors_an_explicit_attempt_cost_guard() -> None:
+    result = RandomScenarioGenerator(AlwaysInvalidProposer()).generate(
+        count=1, seed=7, max_attempts=2
+    )
+    assert result.stats.attempted == 2
+    assert result.stats.accepted == 0

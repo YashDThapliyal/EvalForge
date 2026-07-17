@@ -133,6 +133,11 @@ uv run pytest --cov=evalforge --cov-report=term-missing      passed (62, 2 desel
 - Models remain sequential inside each provider lane to control rate-limit pressure.
 - Comparison starts only after both lanes succeed; a failed lane makes the script return nonzero.
 - Provider output is persisted separately under `artifacts/model-suite/logs/`.
+- Replaced interleaved provider prints with side-by-side episode progress bars showing the active
+  model and completed episodes out of 108 for each lane.
 - TDD red gate: the runner test failed because provider lanes and waits were absent.
-- Green gate: model-suite tests passed (3), and `bash -n scripts/run_model_suite.sh` passed.
-- Full regression gate: 63 passed, 2 explicitly live tests deselected; Ruff and strict mypy passed.
+- Green gate: model-suite tests passed (4), and `bash -n scripts/run_model_suite.sh` passed.
+- Full regression gate: 65 passed, 2 explicitly live tests deselected; Ruff and strict mypy passed.
+- Added cost guards for the paid shared-corpus stage: at most 36 proposal attempts and 12,000
+  output tokens per proposal. Expected total suite spend is documented as $10–$14, with $20
+  recommended provisioning and a $25 billing alert.
