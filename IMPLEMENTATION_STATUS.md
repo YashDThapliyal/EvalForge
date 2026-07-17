@@ -106,7 +106,7 @@ new post-migration experiment is required before using it to compare scenario-so
 - Added equal-budget configs for GPT-5.6 Sol, GPT-5, GPT-5 mini, Claude Opus 4.8, Claude Sonnet 5,
   and the pinned Claude Haiku 4.5 snapshot.
 - Verified model IDs and explicit token rates against current official provider documentation.
-- Added one sequential `scripts/run_model_suite.sh` command that checks both credentials, creates
+- Added one unattended `scripts/run_model_suite.sh` command that checks both credentials, creates
   one live-proposed shared random corpus, runs all six models, and renders the combined report.
 - Added shared-corpus loading and validation so every model receives identical manual and random
   cases while its failure-directed arm remains adaptive to its own observed failures.
@@ -126,3 +126,13 @@ uv run ruff check .                                          passed
 uv run mypy src/evalforge                                    passed (48 source files)
 uv run pytest --cov=evalforge --cov-report=term-missing      passed (62, 2 deselected, 90%)
 ```
+
+### Provider-lane parallelism
+
+- The suite now runs one OpenAI lane and one Anthropic lane concurrently.
+- Models remain sequential inside each provider lane to control rate-limit pressure.
+- Comparison starts only after both lanes succeed; a failed lane makes the script return nonzero.
+- Provider output is persisted separately under `artifacts/model-suite/logs/`.
+- TDD red gate: the runner test failed because provider lanes and waits were absent.
+- Green gate: model-suite tests passed (3), and `bash -n scripts/run_model_suite.sh` passed.
+- Full regression gate: 63 passed, 2 explicitly live tests deselected; Ruff and strict mypy passed.

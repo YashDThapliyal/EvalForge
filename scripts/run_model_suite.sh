@@ -13,10 +13,12 @@ if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
   exit 1
 fi
 
-configs=(
+openai_configs=(
   configs/model_suite/openai_gpt_5_6_sol.yaml
   configs/model_suite/openai_gpt_5.yaml
   configs/model_suite/openai_gpt_5_mini.yaml
+)
+anthropic_configs=(
   configs/model_suite/anthropic_opus_4_8.yaml
   configs/model_suite/anthropic_sonnet_5.yaml
   configs/model_suite/anthropic_haiku_4_5.yaml
@@ -45,12 +47,45 @@ else
   echo "Reusing 12 shared validated random scenarios from $shared_random_dir"
 fi
 
-for config in "${configs[@]}"; do
-  echo
-  echo "Running $config"
-  UV_CACHE_DIR="${UV_CACHE_DIR:-/private/tmp/evalforge-uv-cache}" \
-    uv run evalforge experiment --config "$config"
-done
+run_provider_lane() {
+  local provider="$1"
+  shift
+  for config in "$@"; do
+    echo
+    echo "[$provider] Running $config"
+    UV_CACHE_DIR="${UV_CACHE_DIR:-/private/tmp/evalforge-uv-cache}" \
+      uv run evalforge experiment --config "$config"
+  done
+}
+
+mkdir -p artifacts/model-suite/logs
+openai_pid=""
+anthropic_pid=""
+stop_lanes() {
+  [[ -n "$openai_pid" ]] && kill "$openai_pid" 2>/dev/null || true
+  [[ -n "$anthropic_pid" ]] && kill "$anthropic_pid" 2>/dev/null || true
+}
+trap stop_lanes INT TERM
+
+run_provider_lane openai "${openai_configs[@]}" \
+  > >(tee artifacts/model-suite/logs/openai.log) 2>&1 &
+openai_pid=$!
+run_provider_lane anthropic "${anthropic_configs[@]}" \
+  > >(tee artifacts/model-suite/logs/anthropic.log) 2>&1 &
+anthropic_pid=$!
+
+set +e
+wait "$openai_pid"
+openai_status=$?
+wait "$anthropic_pid"
+anthropic_status=$?
+set -e
+trap - INT TERM
+
+if [[ "$openai_status" -ne 0 || "$anthropic_status" -ne 0 ]]; then
+  echo "Model suite failed: OpenAI lane=$openai_status Anthropic lane=$anthropic_status" >&2
+  exit 1
+fi
 
 compare_args=()
 for output_dir in "${output_dirs[@]}"; do

@@ -32,9 +32,13 @@ export ANTHROPIC_API_KEY=...
 bash scripts/run_model_suite.sh
 ```
 
-The script runs sequentially, so it does not multiply API rate pressure. Completed episodes are
-reused by EvalForge if the same experiment is restarted. The shared random corpus is generated
-only when it does not already exist. At completion, the combined reports are written to:
+The script runs two provider lanes concurrently: OpenAI models run sequentially within one lane,
+while Anthropic models run sequentially within the other. This overlaps independent provider API
+latency without launching three simultaneous requests against either provider's rate limit.
+Completed episodes are reused by EvalForge if the same experiment is restarted. The shared random
+corpus is generated only when it does not already exist. Lane output is saved in
+`artifacts/model-suite/logs/openai.log` and `artifacts/model-suite/logs/anthropic.log`. At
+completion, the combined reports are written to:
 
 ```text
 artifacts/model-suite/comparison/report.md

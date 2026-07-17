@@ -51,3 +51,14 @@ def test_model_suite_runner_includes_every_config_and_comparison() -> None:
     assert "evalforge compare" in script
     assert "OPENAI_API_KEY" in script
     assert "ANTHROPIC_API_KEY" in script
+
+
+def test_model_suite_runs_two_provider_lanes_in_parallel_then_waits() -> None:
+    script = Path("scripts/run_model_suite.sh").read_text(encoding="utf-8")
+    assert "run_provider_lane openai" in script
+    assert "run_provider_lane anthropic" in script
+    assert "openai_pid=$!" in script
+    assert "anthropic_pid=$!" in script
+    assert 'wait "$openai_pid"' in script
+    assert 'wait "$anthropic_pid"' in script
+    assert script.index('wait "$anthropic_pid"') < script.index("evalforge compare")
