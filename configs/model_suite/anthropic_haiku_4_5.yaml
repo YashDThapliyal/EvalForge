@@ -1,0 +1,16 @@
+seed: 7
+scenarios_per_source: 12
+agent: anthropic
+model: claude-haiku-4-5-20251001
+max_agent_steps: 10
+max_output_tokens: 4096
+output_dir: artifacts/model-suite/claude-haiku-4-5-20251001
+random_proposer: openai
+random_proposer_model: gpt-5.6-sol
+random_scenarios_path: artifacts/model-suite/shared-random
+failure_directed_proposer: bounded_mutation
+manual_selection_strategy: stratified-v1
+input_cost_per_million: 1.0
+cached_input_cost_per_million: 0.1
+cache_write_cost_per_million: 1.25
+output_cost_per_million: 5.0

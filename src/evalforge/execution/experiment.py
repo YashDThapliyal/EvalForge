@@ -22,10 +22,12 @@ from evalforge.scenarios.loader import load_scenarios, write_scenario
 from evalforge.scenarios.manual import FAMILIES
 from evalforge.scenarios.openai_proposer import OpenAIScenarioProposer
 from evalforge.scenarios.random_generator import (
+    GenerationResult,
     GenerationStats,
     RandomScenarioGenerator,
     ScenarioProposer,
 )
+from evalforge.scenarios.validator import ScenarioValidator
 from evalforge.serialization import canonical_json
 from evalforge.verification.engine import verify_episode
 from evalforge.verification.taxonomy import classify_failure
@@ -76,9 +78,7 @@ class ExperimentRunner:
         budget = self.config.scenarios_per_source
         manual = self._select_manual(load_scenarios(Path("scenarios/manual")), budget)
         manual_stats = GenerationStats(attempted=budget, accepted=len(manual))
-        random_result = RandomScenarioGenerator(self._random_proposer()).generate(
-            count=budget, seed=self.config.seed
-        )
+        random_result = self._random_scenarios(budget)
         if len(manual) != budget or len(random_result.accepted) != budget:
             raise RuntimeError("Unable to fill the accepted scenario budget")
 
@@ -310,3 +310,35 @@ class ExperimentRunner:
         if self.config.random_proposer == "openai":
             return OpenAIScenarioProposer(model=self.config.random_proposer_model)
         raise ValueError(f"Unsupported random proposer: {self.config.random_proposer}")
+
+    def _random_scenarios(self, budget: int) -> GenerationResult:
+        """Generate live proposals or load one explicitly shared validated corpus."""
+
+        if self.config.random_scenarios_path is None:
+            return RandomScenarioGenerator(self._random_proposer()).generate(
+                count=budget, seed=self.config.seed
+            )
+        path = Path(self.config.random_scenarios_path)
+        scenarios = load_scenarios(path)
+        if len(scenarios) != budget:
+            raise RuntimeError(
+                f"Shared random corpus must contain exactly {budget} scenarios; "
+                f"found {len(scenarios)} under {path}"
+            )
+        validator = ScenarioValidator()
+        for scenario in scenarios:
+            if scenario.source_method is not SourceMethod.RANDOM:
+                raise RuntimeError(f"Shared scenario {scenario.scenario_id} is not random")
+            validation = validator.validate(scenario)
+            if not validation.valid:
+                codes = ", ".join(sorted(validation.codes))
+                raise RuntimeError(f"Shared scenario {scenario.scenario_id} is invalid: {codes}")
+        stats_path = path / "generation_stats.json"
+        stats = (
+            GenerationStats.model_validate_json(stats_path.read_text(encoding="utf-8"))
+            if stats_path.exists()
+            else GenerationStats(attempted=budget, accepted=budget)
+        )
+        if stats.accepted != budget:
+            raise RuntimeError("Shared random generation statistics do not match the corpus")
+        return GenerationResult(accepted=scenarios, stats=stats)

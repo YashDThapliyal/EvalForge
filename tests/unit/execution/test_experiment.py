@@ -7,6 +7,7 @@ import yaml
 
 from evalforge.config import ExperimentConfig
 from evalforge.execution.experiment import ExperimentRunner
+from evalforge.scenarios.loader import write_scenario
 from tests.support import (
     LIVE_CONFIG_FIELDS,
     FixtureScenarioProposer,
@@ -82,3 +83,34 @@ def test_adaptive_source_uses_more_validated_seeds_when_no_failure_exists(
     assert len(scenarios) == len(episodes) == stats.accepted == 4
     assert len({scenario.scenario_id for scenario in scenarios}) == 4
     assert all(scenario.parent_scenario_id is None for scenario in scenarios)
+
+
+def test_experiment_can_reuse_one_validated_random_corpus_across_models(
+    tmp_path: Path,
+) -> None:
+    shared = tmp_path / "shared-random"
+    proposer = FixtureScenarioProposer()
+    for attempt in range(3):
+        scenario = proposer.propose(attempt, 7)
+        write_scenario(shared / f"{scenario.scenario_id}.yaml", scenario)
+
+    class ExplodingProposer:
+        def propose(self, attempt: int, seed: int):  # type: ignore[no-untyped-def]
+            del attempt, seed
+            raise AssertionError("shared corpus should prevent a new proposal call")
+
+    config = ExperimentConfig(
+        seed=7,
+        scenarios_per_source=3,
+        output_dir=str(tmp_path / "runs"),
+        random_scenarios_path=str(shared),
+        **LIVE_CONFIG_FIELDS,  # type: ignore[arg-type]
+    )
+    result = ExperimentRunner(
+        config,
+        agent_factory=UnresolvedTestAgent,
+        random_proposer=ExplodingProposer(),
+    ).run()
+    assert [scenario.scenario_id for scenario in result.scenario_order["random"]] == [
+        proposer.propose(attempt, 7).scenario_id for attempt in range(3)
+    ]

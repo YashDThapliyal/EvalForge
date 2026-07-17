@@ -23,6 +23,7 @@ class ExperimentConfig(BaseModel):
     output_dir: str = "artifacts"
     random_proposer: Literal["openai"]
     random_proposer_model: str = Field(min_length=1)
+    random_scenarios_path: str | None = None
     failure_directed_proposer: Literal["bounded_mutation"]
     manual_selection_strategy: str = "stratified-v1"
     input_cost_per_million: float = Field(ge=0)
