@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from evalforge.execution.episode import EpisodeResult
 
 MUTATIONS = {"restart_service", "rollback_deployment", "update_config", "open_incident"}
+STATE_MUTATIONS = {"restart_service", "rollback_deployment", "update_config"}
 
 
 def verify_trace_policy(
@@ -22,8 +23,9 @@ def verify_trace_policy(
     findings: list[VerificationFinding] = []
     required = set(scenario.success_contract.required_verification_tools)
     mutation_events = [event for event in episode.events if event.tool_name in MUTATIONS]
-    if required and mutation_events:
-        last_mutation = mutation_events[-1]
+    state_mutations = [event for event in episode.events if event.tool_name in STATE_MUTATIONS]
+    if required and state_mutations:
+        last_mutation = state_mutations[-1]
         verified = any(
             event.step_index > last_mutation.step_index
             and event.tool_name in required

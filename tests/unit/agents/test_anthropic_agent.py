@@ -70,6 +70,9 @@ def test_anthropic_agent_uses_canonical_tool_result_loop_and_final_tool() -> Non
     provider_tools = client.messages.calls[0]["tools"]
     assert isinstance(provider_tools, list)
     assert provider_tools[-1]["name"] == "submit_final"
+    read_logs = next(item for item in provider_tools if item["name"] == "read_logs")
+    assert "minimum" not in read_logs["input_schema"]["properties"]["limit"]
+    assert "maximum" not in read_logs["input_schema"]["properties"]["limit"]
     assert agent.usage.input_tokens == 160
     assert agent.usage.output_tokens == 35
     assert agent.usage.api_calls == 2

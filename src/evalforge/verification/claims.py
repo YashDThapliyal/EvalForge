@@ -52,7 +52,16 @@ def verify_claims(episode: EpisodeResult) -> list[VerificationFinding]:
                 component="claims",
             )
         )
-    uncertain = any(event.visible_observation.status == "uncertain" for event in episode.events)
+    uncertain = any(
+        event.visible_observation.status == "uncertain"
+        and not any(
+            later.step_index > event.step_index
+            and later.tool_name in {"inspect_service", "read_logs"}
+            and later.arguments.get("service_id") == event.arguments.get("service_id")
+            for later in episode.events
+        )
+        for event in episode.events
+    )
     uncertainty_claimed = any(
         claim.claim_type is ClaimType.UNRESOLVED_UNCERTAINTY for claim in episode.final.claims
     )

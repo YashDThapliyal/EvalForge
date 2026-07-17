@@ -90,6 +90,10 @@ def run_command(
         f"Episode {result.episode_id}: {result.runtime_status}; "
         f"{len(result.events)} tool call(s); artifacts: {output}"
     )
+    if result.runtime_status != "valid":
+        for error in result.runtime_errors:
+            typer.echo(error, err=True)
+        raise typer.Exit(1)
 
 
 @app.command("generate")

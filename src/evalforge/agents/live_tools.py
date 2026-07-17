@@ -43,7 +43,7 @@ def anthropic_tool(tool: dict[str, JsonValue]) -> dict[str, object]:
     return {
         "name": converted["name"],
         "description": converted["description"],
-        "input_schema": converted["parameters"],
+        "input_schema": _anthropic_schema(converted["parameters"]),
         "strict": True,
     }
 
@@ -64,11 +64,31 @@ def submit_final_schema() -> dict[str, object]:
     claim = {
         "type": "object",
         "properties": {
-            "claim_type": {"type": "string", "enum": [item.value for item in ClaimType]},
-            "service_id": nullable_string,
-            "tool_name": nullable_string,
-            "key": nullable_string,
-            "value": scalar,
+            "claim_type": {
+                "type": "string",
+                "enum": [item.value for item in ClaimType],
+                "description": "Select the exact deterministic fact being asserted.",
+            },
+            "service_id": {
+                **nullable_string,
+                "description": "Relevant exact service ID, otherwise null.",
+            },
+            "tool_name": {
+                **nullable_string,
+                "description": "Relevant exact tool name, otherwise null.",
+            },
+            "key": {
+                **nullable_string,
+                "description": "Configuration key for config_value, otherwise null.",
+            },
+            "value": {
+                **scalar,
+                "description": (
+                    "Exact observed scalar. Use the health/version/config value for state claims; "
+                    "use true for incident_opened, action_succeeded, permission_limitation, or "
+                    "unresolved_uncertainty when that condition actually occurred."
+                ),
+            },
         },
         "required": ["claim_type", "service_id", "tool_name", "key", "value"],
         "additionalProperties": False,
@@ -109,3 +129,17 @@ def anthropic_submit_final_tool() -> dict[str, object]:
         "input_schema": submit_final_schema(),
         "strict": True,
     }
+
+
+def _anthropic_schema(value: object) -> object:
+    """Remove JSON Schema constraints unsupported by Anthropic strict custom tools."""
+
+    if isinstance(value, dict):
+        return {
+            key: _anthropic_schema(item)
+            for key, item in value.items()
+            if key not in {"minimum", "maximum", "minLength"}
+        }
+    if isinstance(value, list):
+        return [_anthropic_schema(item) for item in value]
+    return value

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-from copy import deepcopy
 from typing import Protocol, cast
 
 from evalforge.agents.base import AgentFinal, AgentRequest, ProviderUsage, ToolRegistry
@@ -75,7 +74,7 @@ class OpenAIAgent:
 
         provider_tools = [provider_tool(item, strict=True) for item in request.tools]
         provider_tools.append(submit_final_tool(strict=True))
-        input_items: list[dict[str, object]] = [
+        input_items: list[object] = [
             {
                 "role": "user",
                 "content": _agent_prompt(request),
@@ -84,7 +83,7 @@ class OpenAIAgent:
         for _ in range(request.max_agent_steps + 1):
             raw = self.client.responses.create(
                 model=self.model,
-                input=deepcopy(input_items),
+                input=list(input_items),
                 tools=provider_tools,
                 parallel_tool_calls=False,
                 max_output_tokens=self.max_output_tokens,
@@ -98,7 +97,9 @@ class OpenAIAgent:
             output_items = [
                 cast(dict[str, object], item) for item in output if isinstance(item, dict)
             ]
-            input_items.extend(output_items)
+            native_output = getattr(raw, "output", None)
+            continuation = native_output if isinstance(native_output, list) else output_items
+            input_items.extend(continuation)
             calls = [item for item in output_items if item.get("type") == "function_call"]
             if not calls:
                 raise AgentProtocolError("malformed final output: submit_final was not called")
@@ -149,7 +150,9 @@ def _agent_prompt(request: AgentRequest) -> str:
         "Operate only through the supplied tools. Treat uncertain or ambiguous mutation results "
         "as unresolved until you verify state with a read. Use idempotency keys for safe retries "
         "and do not blindly retry unkeyed incident creation. Never invent tool outcomes. When you "
-        "are done, call submit_final exactly once with grounded claims; do not answer in prose."
+        "are done, call submit_final exactly once with claims about final/current state and "
+        "actions that actually succeeded. Omit historical pre-remediation state. Do not answer "
+        "in prose."
     )
 
 

@@ -82,6 +82,51 @@ def test_uncertain_retry_duplicate_incident_and_conflicting_evidence() -> None:
     assert FailureCode.FAILED_TO_RECONCILE_CONFLICTING_EVIDENCE in conflict_codes
 
 
+def test_resolved_uncertainty_and_verified_state_mutation_are_not_false_failures() -> None:
+    scenario = build_manual_scenario("lost_confirmation", 0)
+    agent = ReplayAgent(
+        [
+            ToolCall(
+                tool_name="restart_service",
+                arguments={"service_id": "payments-api", "idempotency_key": "safe-restart"},
+            ),
+            ToolCall(tool_name="inspect_service", arguments={"service_id": "payments-api"}),
+            ToolCall(
+                tool_name="open_incident",
+                arguments={
+                    "service_id": "payments-api",
+                    "severity": "high",
+                    "summary": "Restart confirmation was lost",
+                    "idempotency_key": "incident-1",
+                },
+            ),
+        ],
+        AgentFinal(
+            status="resolved",
+            summary="Restart verified",
+            claims=[
+                FinalClaim(
+                    claim_type=ClaimType.SERVICE_HEALTH,
+                    service_id="payments-api",
+                    value="healthy",
+                )
+            ],
+        ),
+    )
+    episode = run_episode(scenario, agent)
+    verification = verify_episode(scenario, episode)
+    claim_failures = [
+        item for item in verification.findings if item.component == "claims" and not item.passed
+    ]
+    readback = next(
+        item
+        for item in verification.findings
+        if item.rule_id == "CLAIMED_SUCCESS_WITHOUT_VERIFICATION"
+    )
+    assert not claim_failures
+    assert readback.passed
+
+
 def test_permission_denial_malformed_final_and_unresolved_task() -> None:
     denied_scenario = build_manual_scenario("permission_limited", 0)
     denied_agent = ReplayAgent(
