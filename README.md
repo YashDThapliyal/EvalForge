@@ -31,15 +31,23 @@ This models successful operations with lost confirmation, failed operations with
 
 ```bash
 uv sync --all-extras
+export OPENAI_API_KEY=...
+export ANTHROPIC_API_KEY=...
 uv run evalforge validate scenarios/manual
-uv run evalforge demo --seed 7
 uv run evalforge experiment --config configs/quick.yaml
 ```
 
 Run and inspect one checked-in scenario:
 
 ```bash
-uv run evalforge run --scenario scenarios/manual/bad_deployment_001.yaml --agent scripted
+uv run evalforge run \
+  --scenario scenarios/manual/bad_deployment_001.yaml \
+  --agent openai \
+  --model gpt-5.6-sol \
+  --input-cost-per-million 5.0 \
+  --cached-input-cost-per-million 0.5 \
+  --cache-write-cost-per-million 6.25 \
+  --output-cost-per-million 30.0
 uv run evalforge inspect --experiment artifacts/<experiment_id> --episode <episode_id>
 ```
 
@@ -99,9 +107,9 @@ uv run evalforge report --experiment artifacts/<experiment_id>
 uv run evalforge inspect --experiment artifacts/<experiment_id> --episode <failed_episode_id>
 ```
 
-## Live model evaluation
+## Model evaluation
 
-The default suite and demo never require credentials or network access. Live evaluation is explicit and has no scripted fallback. The OpenAI Responses and Anthropic Messages adapters use native custom-tool calls, preserve raw provider messages, terminate through a strict `submit_final` tool, and record provider/model identity, tokens, API calls, and estimated cost in every episode.
+Every production evaluation uses an explicitly configured live provider and model. There is no scripted agent, programmatic scenario-proposal fallback, credential-free demo, implicit provider, or implicit model. The OpenAI Responses and Anthropic Messages adapters use native custom-tool calls, preserve raw provider messages, terminate through a strict `submit_final` tool, and record provider/model identity, tokens, API calls, and estimated cost in every episode. Authentication or provider failures are recorded as failures and are never replaced with fabricated behavior.
 
 ```bash
 export OPENAI_API_KEY=...
@@ -116,14 +124,13 @@ uv run evalforge compare \
 uv run pytest -m live tests/live
 ```
 
-The checked-in live configs use `gpt-5.6-sol` and `claude-opus-4-8` and save explicit token prices. Provider/authentication failure becomes a structured failure and is never replaced with `ScriptedBaselineAgent`.
+The checked-in configs use explicit models and token prices. `configs/quick.yaml`, `configs/full.yaml`, and `configs/live_openai.yaml` use `gpt-5.6-sol`; `configs/live_anthropic.yaml` evaluates `claude-opus-4-8`. Random proposals use the explicitly configured OpenAI schema-constrained proposer.
 
-`OpenAIScenarioProposer` requests strict `ScenarioSpec` JSON-schema output and never executes generated code. Programmatic proposal remains the reproducible default.
+`OpenAIScenarioProposer` requests strict `ScenarioSpec` JSON-schema output and never executes generated code. Unit tests remain local by injecting test-only provider responses and data fixtures; these are not production evaluation paths.
 
 ## Limitations
 
 - The world is a compact simulator, not a complete model of AWS, GCP, Azure, or Kubernetes.
-- The scripted agent intentionally has shallow selection and uncertainty-handling weaknesses.
 - Failure-directed mutations are bounded structural transformations, not open-ended synthesis.
 - Live-provider behavior is sampled and can vary; compare exact artifacts and do not infer statistical significance from the quick budget.
 - The manual corpus uses a compact reviewed manifest plus a family expander to avoid duplicating world boilerplate.

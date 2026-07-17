@@ -2,6 +2,17 @@
 
 Read this entire file before making changes. Treat it as the authoritative implementation contract for the repository.
 
+## Live-only amendment — 2026-07-17
+
+The project owner has replaced the earlier offline evaluated-agent requirement. Production
+evaluation and random proposal generation must use explicitly configured live providers and
+models. EvalForge must not ship a scripted tested agent, credential-free demo, programmatic
+proposal fallback, implicit provider, or implicit model. Oracle and replay agents remain limited
+to validation and regression debugging. Offline tests may inject deterministic test doubles, but
+those doubles must live under `tests/` and must never be selected by a production command or
+configuration. This amendment supersedes every conflicting scripted/default/demo requirement
+below.
+
 ## 1. Mission
 
 Build **EvalForge**, a local system that generates, validates, runs, and analyzes executable stress tests for tool-using AI agents.
