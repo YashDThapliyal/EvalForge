@@ -22,6 +22,18 @@ def test_minimal_configuration_round_trips() -> None:
     assert ExperimentConfig.model_validate_json(config.model_dump_json()) == config
 
 
+def test_live_experiment_config_records_model_and_pricing() -> None:
+    config = ExperimentConfig(
+        agent="openai",
+        model="gpt-5.6-sol",
+        input_cost_per_million=5.0,
+        cached_input_cost_per_million=0.5,
+        output_cost_per_million=30.0,
+    )
+    assert config.model == "gpt-5.6-sol"
+    assert config.input_cost_per_million == 5.0
+
+
 def test_canonical_json_is_stable() -> None:
     first = canonical_json({"z": [3, 2], "a": {"b": True}})
     second = canonical_json(json.loads(first))

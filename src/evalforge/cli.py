@@ -5,6 +5,7 @@ from typing import Annotated
 
 import typer
 
+from evalforge.agents.anthropic_agent import AnthropicAgent
 from evalforge.agents.base import Agent
 from evalforge.agents.openai_agent import LiveConfigurationError, OpenAIAgent
 from evalforge.agents.scripted import ScriptedBaselineAgent
@@ -13,6 +14,7 @@ from evalforge.execution.artifacts import atomic_write
 from evalforge.execution.demo import run_demo
 from evalforge.execution.episode import run_episode
 from evalforge.execution.experiment import ExperimentRunner
+from evalforge.reporting.comparison import generate_model_comparison
 from evalforge.reporting.html import generate_html_report
 from evalforge.reporting.inspect import render_failure_timeline
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
@@ -55,20 +57,27 @@ def validate_command(path: Path) -> None:
 def run_command(
     scenario: Annotated[Path, typer.Option("--scenario")],
     agent: Annotated[str, typer.Option("--agent")] = "scripted",
+    model: Annotated[str | None, typer.Option("--model")] = None,
 ) -> None:
-    """Run one scenario with a deterministic offline agent."""
+    """Run one scenario with a scripted or explicitly configured live agent."""
 
     selected_agent: Agent
     if agent == "scripted":
         selected_agent = ScriptedBaselineAgent()
     elif agent == "openai":
         try:
-            selected_agent = OpenAIAgent()
+            selected_agent = OpenAIAgent(model=model or "gpt-5.6-sol")
+        except LiveConfigurationError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+    elif agent == "anthropic":
+        try:
+            selected_agent = AnthropicAgent(model=model or "claude-opus-4-8")
         except LiveConfigurationError as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(1) from exc
     else:
-        typer.echo(f"Unsupported offline agent: {agent}", err=True)
+        typer.echo(f"Unsupported agent: {agent}", err=True)
         raise typer.Exit(1)
     loaded = load_scenario(scenario)
     validation = ScenarioValidator().validate(loaded)
@@ -132,10 +141,32 @@ def experiment_command(
 ) -> None:
     """Run the deterministic equal-budget three-source experiment."""
 
-    result = ExperimentRunner(load_experiment_config(config)).run()
+    try:
+        result = ExperimentRunner(load_experiment_config(config)).run()
+    except (LiveConfigurationError, RuntimeError, ValueError) as exc:
+        typer.echo(f"Experiment failed: {exc}", err=True)
+        raise typer.Exit(1) from exc
     typer.echo(
         f"Experiment {result.experiment_id} complete: {len(result.episode_ids)} episodes; "
         f"artifacts: {result.artifact_dir}"
+    )
+
+
+@app.command("compare")
+def compare_command(
+    experiments: Annotated[list[Path], typer.Option("--experiment")],
+    output: Annotated[Path, typer.Option("--output")] = Path("artifacts/live/comparison"),
+) -> None:
+    """Compare two or more completed equal-budget model experiments."""
+
+    try:
+        result = generate_model_comparison(experiments, output)
+    except ValueError as exc:
+        typer.echo(f"Comparison failed: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(
+        f"Compared {len(result.artifact.models)} models; reports: "
+        f"{result.output_dir / 'report.md'} and {result.output_dir / 'report.html'}"
     )
 
 

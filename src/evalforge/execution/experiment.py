@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel
 
+from evalforge.agents.anthropic_agent import AnthropicAgent
 from evalforge.agents.base import Agent
 from evalforge.agents.openai_agent import OpenAIAgent
 from evalforge.agents.scripted import ScriptedBaselineAgent
@@ -112,6 +113,7 @@ class ExperimentRunner:
                     "status": "complete",
                     "seed": self.config.seed,
                     "agent": self.config.agent,
+                    "model": self.config.model,
                     "scenarios_per_source": budget,
                     "episode_ids": episode_ids,
                     "generation_stats": {
@@ -222,5 +224,31 @@ class ExperimentRunner:
         if self.config.agent == "scripted":
             return ScriptedBaselineAgent()
         if self.config.agent == "openai":
-            return OpenAIAgent()
+            assert self.config.model is not None
+            assert self.config.input_cost_per_million is not None
+            assert self.config.cached_input_cost_per_million is not None
+            assert self.config.cache_write_cost_per_million is not None
+            assert self.config.output_cost_per_million is not None
+            return OpenAIAgent(
+                model=self.config.model,
+                max_output_tokens=self.config.max_output_tokens,
+                input_cost_per_million=self.config.input_cost_per_million,
+                cached_input_cost_per_million=self.config.cached_input_cost_per_million,
+                cache_write_cost_per_million=self.config.cache_write_cost_per_million,
+                output_cost_per_million=self.config.output_cost_per_million,
+            )
+        if self.config.agent == "anthropic":
+            assert self.config.model is not None
+            assert self.config.input_cost_per_million is not None
+            assert self.config.cached_input_cost_per_million is not None
+            assert self.config.cache_write_cost_per_million is not None
+            assert self.config.output_cost_per_million is not None
+            return AnthropicAgent(
+                model=self.config.model,
+                max_output_tokens=self.config.max_output_tokens,
+                input_cost_per_million=self.config.input_cost_per_million,
+                cached_input_cost_per_million=self.config.cached_input_cost_per_million,
+                cache_write_cost_per_million=self.config.cache_write_cost_per_million,
+                output_cost_per_million=self.config.output_cost_per_million,
+            )
         raise ValueError(f"Unsupported experiment agent: {self.config.agent}")

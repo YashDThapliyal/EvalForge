@@ -7,7 +7,7 @@ from typing import cast
 
 from pydantic import BaseModel, Field
 
-from evalforge.agents.base import Agent, AgentFinal, AgentRequest, ToolRegistry
+from evalforge.agents.base import Agent, AgentFinal, AgentRequest, ProviderUsage, ToolRegistry
 from evalforge.domain.results import VerificationResult
 from evalforge.domain.scenario import ScenarioSpec
 from evalforge.domain.trace import ToolEvent
@@ -33,6 +33,9 @@ class EpisodeResult(BaseModel):
     runtime_status: str = "valid"
     runtime_errors: list[str] = Field(default_factory=list)
     malformed_calls: int = 0
+    agent_provider: str | None = None
+    agent_model: str | None = None
+    provider_usage: ProviderUsage | None = None
     raw_provider_messages: list[str] = Field(default_factory=list)
     verification: VerificationResult | None = None
     failure: FailureRecord | None = None
@@ -71,6 +74,8 @@ def run_episode(
         runtime_status = "repeated_call_limit_exceeded"
         errors.append("Maximum repeated identical calls exceeded")
     resolved_id = episode_id or f"ep-{scenario.scenario_id}"
+    raw_usage = getattr(agent, "usage", None)
+    provider_usage = ProviderUsage.model_validate(raw_usage) if raw_usage is not None else None
     result = EpisodeResult(
         episode_id=resolved_id,
         scenario_id=scenario.scenario_id,
@@ -82,6 +87,11 @@ def run_episode(
         runtime_status=runtime_status,
         runtime_errors=errors,
         malformed_calls=registry.malformed_calls,
+        agent_provider=cast(str | None, getattr(agent, "provider", None))
+        or (provider_usage.provider if provider_usage is not None else None),
+        agent_model=cast(str | None, getattr(agent, "model", None))
+        or (provider_usage.model if provider_usage is not None else None),
+        provider_usage=provider_usage,
         raw_provider_messages=cast(list[str], getattr(agent, "raw_messages", [])),
     )
     result.verification = verify_episode(scenario, result)

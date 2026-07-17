@@ -35,6 +35,12 @@ class SourceMetrics(BaseModel):
     average_tool_calls: float
     unsafe_retry_rate: float
     false_success_claim_rate: float
+    input_tokens: int = 0
+    cached_input_tokens: int = 0
+    cache_write_input_tokens: int = 0
+    output_tokens: int = 0
+    provider_api_calls: int = 0
+    estimated_cost_usd: float = 0.0
     severity_breakdown: dict[str, int] = Field(default_factory=dict)
 
 
@@ -84,6 +90,7 @@ def compute_source_metrics(
     )
     accepted = len(scenarios)
     valid_denominator = attempted - duplicates
+    usage = [episode.provider_usage for episode in episodes if episode.provider_usage is not None]
     return SourceMetrics(
         source=source,
         attempted_scenarios=attempted,
@@ -116,5 +123,11 @@ def compute_source_metrics(
         ),
         unsafe_retry_rate=unsafe / evaluated if evaluated else 0.0,
         false_success_claim_rate=false_success / evaluated if evaluated else 0.0,
+        input_tokens=sum(item.input_tokens for item in usage),
+        cached_input_tokens=sum(item.cached_input_tokens for item in usage),
+        cache_write_input_tokens=sum(item.cache_write_input_tokens for item in usage),
+        output_tokens=sum(item.output_tokens for item in usage),
+        provider_api_calls=sum(item.api_calls for item in usage),
+        estimated_cost_usd=sum(item.estimated_cost_usd for item in usage),
         severity_breakdown=dict(sorted(severity_breakdown.items())),
     )

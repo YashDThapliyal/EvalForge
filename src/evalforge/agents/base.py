@@ -6,7 +6,7 @@ from collections import Counter
 from enum import StrEnum
 from typing import Protocol, cast
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from evalforge.domain.trace import ToolObservation
 from evalforge.domain.world import JsonValue
@@ -45,6 +45,46 @@ class AgentFinal(BaseModel):
     status: str
     summary: str
     claims: list[FinalClaim]
+
+
+class ProviderUsage(BaseModel):
+    """Auditable token and estimated-cost totals for one live episode."""
+
+    provider: str
+    model: str
+    input_tokens: int = 0
+    cached_input_tokens: int = 0
+    cache_write_input_tokens: int = 0
+    output_tokens: int = 0
+    api_calls: int = 0
+    estimated_cost_usd: float = Field(default=0.0, ge=0.0)
+
+    def record(
+        self,
+        *,
+        input_tokens: int,
+        output_tokens: int,
+        cached_input_tokens: int = 0,
+        cache_write_input_tokens: int = 0,
+        input_cost_per_million: float,
+        cached_input_cost_per_million: float,
+        cache_write_cost_per_million: float,
+        output_cost_per_million: float,
+    ) -> None:
+        """Add one provider response using explicit per-million-token prices."""
+
+        uncached = max(input_tokens - cached_input_tokens - cache_write_input_tokens, 0)
+        self.input_tokens += input_tokens
+        self.cached_input_tokens += cached_input_tokens
+        self.cache_write_input_tokens += cache_write_input_tokens
+        self.output_tokens += output_tokens
+        self.api_calls += 1
+        self.estimated_cost_usd += (
+            uncached * input_cost_per_million
+            + cached_input_tokens * cached_input_cost_per_million
+            + cache_write_input_tokens * cache_write_cost_per_million
+            + output_tokens * output_cost_per_million
+        ) / 1_000_000
 
 
 class AgentRequest(BaseModel):

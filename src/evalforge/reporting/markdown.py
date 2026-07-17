@@ -36,6 +36,7 @@ def generate_markdown_report(experiment: Path) -> str:
         "",
         f"Experiment: `{manifest['experiment_id']}`  ",
         f"Tested agent: `{manifest.get('agent', config.get('agent', 'unknown'))}`",
+        f"Model: `{manifest.get('model', config.get('model', 'n/a'))}`",
         "",
         "## Experiment configuration",
         "",
@@ -70,6 +71,10 @@ def generate_markdown_report(experiment: Path) -> str:
         ("Severity-weighted discoveries", "severity_weighted_discoveries", "d"),
         ("Failures per 10 tests", "failures_per_10_tests", ".2f"),
         ("Average tool calls", "average_tool_calls", ".2f"),
+        ("Input tokens", "input_tokens", "d"),
+        ("Output tokens", "output_tokens", "d"),
+        ("Provider API calls", "provider_api_calls", "d"),
+        ("Estimated API cost (USD)", "estimated_cost_usd", ".4f"),
     )
     for label, field, style in comparison:
         values = [getattr(metrics.sources[source], field) for source in SOURCE_ORDER]
@@ -133,8 +138,8 @@ def generate_markdown_report(experiment: Path) -> str:
             "",
             "## Limitations",
             "",
-            "- Results describe this deterministic scripted baseline and these scenario "
-            "families only.",
+            "- Results describe only the configured tested agent/model and these scenario "
+            "families.",
             "- Raw counts and rates are reported; no statistical-significance claim is made.",
             "- The simulator is intentionally local and does not model every production-cloud "
             "behavior.",

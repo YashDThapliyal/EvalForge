@@ -24,7 +24,7 @@ th{background:#eef2f5}pre{background:#f6f8fa;padding:1rem;overflow:auto;white-sp
 REPORT_TEMPLATE = ENV.from_string(
     """<!doctype html><html><head><meta charset="utf-8"><title>EvalForge report</title>
 <style>{{ style }}</style></head><body><h1>EvalForge Experiment Report</h1>
-<p>Experiment <code>{{ manifest.experiment_id }}</code>; tested agent <code>{{ manifest.agent }}</code>.</p>
+<p>Experiment <code>{{ manifest.experiment_id }}</code>; tested agent <code>{{ manifest.agent }}</code>; model <code>{{ manifest.model }}</code>.</p>
 <h2>Three-source comparison</h2><table><thead><tr><th>Source</th><th>Evaluated</th><th>Stress success</th><th>Unique failures</th><th>Weighted discoveries</th></tr></thead><tbody>
 {% for row in rows %}<tr><td>{{ row.label }}</td><td>{{ row.evaluated }}</td><td>{{ row.success }}</td><td>{{ row.unique }}</td><td>{{ row.weighted }}</td></tr>{% endfor %}
 </tbody></table><h2>Discovery curves</h2>{% for row in rows %}<p>{{ row.label }}: <code>{{ row.curve }}</code></p>{% endfor %}

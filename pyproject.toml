@@ -17,6 +17,8 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = ["openai>=1.50"]
+anthropic = ["anthropic>=0.52"]
+live = ["anthropic>=0.52", "openai>=1.50"]
 
 [dependency-groups]
 dev = [
@@ -48,6 +50,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/evalforge/reporting/html.py" = ["E501"] # Embedded HTML templates remain readable.
+"src/evalforge/reporting/comparison.py" = ["E501"] # Embedded HTML template.
 
 [tool.mypy]
 python_version = "3.12"
