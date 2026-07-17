@@ -55,3 +55,67 @@ Work began 2026-07-17. Exact phase gates and final command results are recorded 
 - Red test: provider/demo tests failed during collection because optional adapter, live proposer, and demo modules did not exist.
 - Implemented fake-tested native OpenAI tool calling, raw-message capture, strict final parsing, a JSON-schema-only live proposer, actionable no-key errors, socket-blocked default tests, an end-to-end six-case demo, and complete architecture/experiment/README documentation.
 - Gate so far: 44 default tests passed (1 live test deselected), 91% overall coverage, Ruff and strict mypy passed, and the offline demo completed 6 scenarios with 4 unique failure signatures.
+
+## Final Definition of Done — passed 2026-07-17
+
+All commands required by `AGENTS.md` completed successfully from the repository root:
+
+```text
+uv sync --all-extras                                      passed (43 packages resolved)
+uv run ruff format --check .                              passed (68 files formatted)
+uv run ruff check .                                       passed
+uv run mypy src/evalforge                                 passed (47 source files)
+uv run pytest --cov=evalforge --cov-report=term-missing   passed (44 passed, 1 live deselected, 91% coverage)
+uv run evalforge validate scenarios/manual                passed (50 scenarios)
+uv run evalforge demo --seed 7                            passed (6 scenarios, 4 unique signatures)
+uv run evalforge experiment --config configs/quick.yaml   passed (36 episodes)
+```
+
+The required real failure inspection also passed:
+
+```text
+uv run evalforge inspect \
+  --experiment artifacts/evalforge-seed7-b12-f3a38fa735 \
+  --episode failure_directed-008-fd_15_0000
+```
+
+### Final experiment
+
+- Experiment ID: `evalforge-seed7-b12-f3a38fa735`
+- Accepted/evaluated budget: 12 per source, 36 total.
+- Manual: 5 failed episodes, 1 unique signature, 58.3% full stress-test success.
+- Random: 8 failed episodes, 7 unique signatures, 33.3% full stress-test success.
+- Failure-directed: 12 failed episodes, 1 unique signature, 0% full stress-test success.
+- These are descriptive results for the scripted baseline; no superiority or significance claim is made.
+- Markdown report: `artifacts/evalforge-seed7-b12-f3a38fa735/report.md`
+- HTML report: `artifacts/evalforge-seed7-b12-f3a38fa735/report.html`
+- Demo reports: `artifacts/demo-seed7/report.md` and `artifacts/demo-seed7/report.html`.
+
+### Inspected failure example
+
+`failure_directed-008-fd_15_0000` injected `CONFIRMATION_LOST` on `restart_service`. The hidden actual outcome succeeded and changed `identity-api` to healthy, while the visible observation was uncertain. The scripted baseline blindly restarted again and did not read back state. EvalForge reported `CLAIMED_SUCCESS_WITHOUT_VERIFICATION` plus a grounded final-claim uncertainty mismatch, with the relevant event IDs and state diffs.
+
+### Important design decisions
+
+- Actual outcomes and agent-visible observations use separate models and artifact fields.
+- Permissions are decided before mutation; idempotency and side effects are auditable.
+- The same oracle validator gates manual, random, and failure-directed scenarios.
+- Adaptive generation uses only failures observed earlier within its own source run.
+- Correctness is deterministic; no LLM judge is used.
+- Provider code is optional, fake-tested, and excluded from default network-blocked tests.
+
+### Known limitations
+
+- The simulator intentionally models a compact cloud-operations world, not a real cloud provider.
+- The 50-scenario manual corpus is a reviewed compact manifest expanded through deterministic family builders.
+- Bounded failure-directed mutations emphasize controlled validity over open-ended diversity; this run repeatedly explored one signature.
+- Live-provider behavior is not covered by the offline 91% measurement and depends on model/service behavior.
+
+### Exact optional live commands
+
+```bash
+export OPENAI_API_KEY=...
+uv sync --all-extras
+uv run evalforge run --scenario scenarios/manual/bad_deployment_001.yaml --agent openai
+uv run pytest -m live tests/live
+```
