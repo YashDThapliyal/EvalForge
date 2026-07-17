@@ -1,28 +1,90 @@
 # EvalForge
 
-**EvalForge generates synthetic, executable stress tests for tool-using AI agents—and verifies what actually happened when the agent used its tools.**
+> **What if an agent evaluation suite could turn every failure it discovers into the next generation of stress tests?**
 
-Instead of grading an agent's final answer, EvalForge runs the agent inside a local cloud-operations simulator. It can inject failures such as lost confirmations, stale reads, permission denials, ambiguous responses, and misleading success messages. It then checks the real environment state, complete tool trace, safety invariants, and final claims with deterministic code.
+**EvalForge is an adaptive evaluation system for tool-using AI agents.** It generates synthetic, executable scenarios, runs real models against them, verifies what actually happened in the environment, classifies the failure, and can create new validated scenarios targeted at the weakness it just observed.
 
-The result is an evaluation dataset made of **executable scenarios and fully inspectable trajectories**, not prompt/response examples with subjective labels.
+Most evals end when a model fails a test. EvalForge uses that failure as input to the next test.
 
-## What EvalForge produces
+```text
+generate a scenario
+        ↓
+run a real tool-using model
+        ↓
+verify the actual state and trajectory
+        ↓
+extract a stable failure signature
+        ↓
+generate a validated child that stresses the same weakness
+        ↺
+```
 
-For each test, EvalForge creates and preserves:
+That creates a closed evaluation loop: **generate → execute → verify → learn from failure → generate again**.
 
-- a synthetic cloud-operations scenario with an initial environment and hidden fault plan;
-- a public task and structured tools for the tested agent;
-- every tool call, permission decision, visible response, actual outcome, and state change;
-- the agent's structured final claims;
-- deterministic verifier findings;
-- a canonical failure signature for grouping repeated behaviors;
-- JSON, Markdown, HTML, and terminal-inspectable artifacts.
+## Why this is interesting
 
-This lets EvalForge answer questions that response-only evaluation cannot:
+Tool-using agents do not fail only by giving bad answers. They fail while acting:
 
-> Did the rollback really happen? Was it authorized? Did it affect the correct service? Did the agent verify an ambiguous result? Are its final claims true?
+- a rollback fails but the tool reports success;
+- a restart succeeds but its confirmation disappears;
+- an agent retries a non-idempotent operation and creates duplicates;
+- permissions block a repair, but the agent claims the task is resolved;
+- two monitoring sources disagree and the agent trusts the convenient one;
+- the correct service stays broken while a similarly named service is modified.
 
-## A concrete example
+A response-only benchmark cannot reliably see these failures. Even an LLM judge usually sees the same incomplete evidence as the agent.
+
+EvalForge gives the evaluator something stronger: an executable world with hidden ground truth. It knows the state before and after every tool call, whether the action was authorized, which side effect occurred, what the agent was told, and whether the agent's final claims match reality.
+
+So when an agent says:
+
+> “The service was successfully rolled back.”
+
+EvalForge can determine whether the rollback actually happened, whether it targeted the correct service, whether collateral state changed, whether uncertainty was handled safely, and whether the final claim is grounded.
+
+## The adaptive evaluation loop
+
+EvalForge combines four pieces that are usually separate:
+
+### 1. Generate executable synthetic tests
+
+Every generated example is a complete `ScenarioSpec`, not just a prompt. It defines a local environment, agent identity, hidden faults, success predicates, safety invariants, a step budget, and an oracle plan that proves the task is solvable.
+
+EvalForge builds evaluation sets from three sources:
+
+- **Manual:** 50 reviewed variants across ten operational failure families.
+- **Random synthetic:** schema-constrained scenarios generated without any knowledge of the tested agent's failures.
+- **Failure-directed:** validated descendants generated from failures observed earlier in that model's own adaptive run.
+
+Invalid, impossible, trivial, leaking, and duplicate scenarios are rejected before they can consume the evaluation budget.
+
+### 2. Execute real agents in a fault-injected environment
+
+OpenAI and Anthropic models operate through six structured tools inside a deterministic cloud-operations simulator. EvalForge can inject action failures, lost confirmations, ambiguous replies, stale reads, misleading success responses, transient errors, conflicting monitoring, permission restrictions, and partial outcomes.
+
+The tested model receives only its public task, tool schemas, and visible observations. It never sees the hidden world, fault plan, oracle, verifier predicates, actual outcomes, or target failure signature.
+
+### 3. Verify behavior without an LLM judge
+
+EvalForge checks five independent dimensions:
+
+- **Outcome:** did the requested state change actually happen?
+- **Invariants:** was unrelated or forbidden state protected?
+- **Trace policy:** did the agent verify uncertainty, avoid unsafe retries, and respect permissions?
+- **Claim grounding:** are the agent's structured final claims true?
+- **Runtime validity:** did the model follow the tool and final-output protocol?
+
+This means “task completed” and “agent behaved reliably” are measured separately.
+
+### 4. Turn failures into new tests
+
+Verifier findings become canonical failure signatures that remain stable across superficial changes such as service names and random IDs. The failure-directed generator selects an observed signature, mutates the parent scenario, preserves lineage, and sends the child through the same oracle validator.
+
+The current bounded mutations vary root-cause evidence, add similarly named distractors, or combine both. The architecture is designed so additional controlled mutation operators can be added without allowing generated code execution.
+
+This is the project's most important idea: **the evaluation set can adapt to the model while correctness remains deterministic.**
+
+## See one failure all the way through
 
 Suppose an agent is asked to recover `payments-api`. It calls `restart_service`, and the restart succeeds—but the confirmation is lost.
 
@@ -39,10 +101,7 @@ EvalForge retains the hidden truth:
 
 ```json
 {
-  "actual_outcome": {
-    "status": "success",
-    "message": "Service restarted"
-  },
+  "actual_outcome": {"status": "success", "message": "Service restarted"},
   "state_diff": {
     "changes": [{
       "path": "services.payments-api.health",
@@ -53,7 +112,7 @@ EvalForge retains the hidden truth:
 }
 ```
 
-If the agent blindly retries, fails to read the state back, or makes an unsupported final claim, deterministic verifiers record the exact violated rule:
+If the agent claims success without checking, the verifier produces an evidence-backed finding:
 
 ```json
 {
@@ -64,44 +123,24 @@ If the agent blindly retries, fails to read the state back, or makes an unsuppor
 }
 ```
 
-That reality-versus-observation split is the core of EvalForge.
+EvalForge then classifies the behavior, records a stable signature, and can generate a related scenario to test whether the weakness persists under a controlled variation.
 
-## What is implemented
+## What has been built
 
-| Capability | What it adds |
+| System | Implemented capability |
 |---|---|
-| Local cloud simulator | Services, deployments, health, configuration, logs, dependencies, permissions, incidents, monitoring, and side effects in deterministic Python state |
-| Six structured tools | Inspect services, read logs, restart, roll back, update configuration, and open incidents |
-| Hidden fault injection | Action failures, lost confirmations, ambiguous replies, stale reads, misleading success, transient failure, conflicting monitoring, and partial outcomes |
-| Permission and idempotency semantics | Permission checks happen before mutation; keyed retries are safe while unkeyed incident retries can create duplicates |
-| Reality/observation separation | The tested agent receives only visible tool observations while EvalForge retains actual outcomes and state diffs |
-| Versioned scenario format | A common `ScenarioSpec` represents manual, random synthetic, and failure-directed tests |
-| Oracle validation | Hidden legal plans prove that accepted scenarios are solvable, deterministic, and invariant-preserving |
-| Native live-model adapters | OpenAI Responses and Anthropic Messages tool loops with explicit models and structured `submit_final` output |
-| Deterministic verification | Independent outcome, invariant, trace-policy, claim-grounding, and runtime checks—no LLM judge |
-| Failure taxonomy | Failures become stable behavioral signatures that deduplicate superficial scenario variants |
-| Equal-budget experiments | Manual, random, and adaptive sources are compared using the same accepted budget and verifier |
-| Inspectable reporting | Machine-readable JSON, Markdown, static HTML, per-failure pages, and CLI timelines |
+| Simulator | Services, deployments, health, configuration, logs, dependencies, permissions, incidents, monitoring, action history, and side effects |
+| Agent tools | Inspect, read logs, restart, roll back, update configuration, and open incidents |
+| Operational semantics | Permission-first mutations, keyed idempotency, unsafe unkeyed retries, hidden execution faults, and observation faults |
+| Scenario engine | Versioned schemas, manual corpus, live random proposals, bounded adaptive mutations, fingerprints, deduplication, and lineage |
+| Validation | Referential integrity, fault reachability, nontriviality, leakage checks, oracle execution, invariant preservation, and deterministic replay |
+| Live agents | Native OpenAI Responses and Anthropic Messages tool loops with structured `submit_final` output |
+| Verification | Independent outcome, invariant, trace-policy, claim-grounding, and runtime verifiers—no LLM correctness judge |
+| Failure analysis | Required taxonomy, severity, evidence, and canonical behavioral signatures |
+| Experiments | Equal accepted budgets, shared manual/random inputs, model-specific adaptive arms, token accounting, and cost estimates |
+| Artifacts | Full JSON/JSONL/YAML trajectories, Markdown, static HTML, failure pages, comparison reports, and CLI timelines |
 
-Production evaluation has no scripted-agent, fake-response, or credential-free fallback. Deterministic doubles exist only under `tests/`.
-
-## Three ways to build an evaluation set
-
-All three sources produce the same executable schema and pass the same validator.
-
-### 1. Manual scenarios
-
-The repository includes 50 reviewed variants across ten operational families: bad deployments, incorrect configuration, permission limits, lost confirmations, ambiguous rollbacks, stale or conflicting monitoring, non-idempotent incident creation, distractor services, and unrelated-state invariants.
-
-### 2. Random synthetic scenarios
-
-An explicitly configured OpenAI proposer generates complete, schema-constrained scenarios. It receives tool semantics and examples, but **no tested-agent traces, failure signatures, or failure counts**. Invalid and duplicate proposals are rejected without consuming the accepted evaluation budget.
-
-### 3. Failure-directed scenarios
-
-After a model fails in its adaptive evaluation arm, EvalForge creates validated descendants of that scenario. The current bounded generator varies diagnostic/root-cause evidence, adds similarly named distractor services, or combines both while preserving lineage and oracle solvability.
-
-This is targeted exploitation: it asks whether a known weakness survives controlled variants. It is not currently an open-ended scenario generator.
+Production evaluation has no scripted-agent, fake-response, or credential-free fallback. Test doubles live only under `tests/` and cannot be selected by production configuration.
 
 ## Audited six-model experiment
 
