@@ -141,3 +141,18 @@ uv run pytest --cov=evalforge --cov-report=term-missing      passed (62, 2 desel
 - Added cost guards for the paid shared-corpus stage: at most 36 proposal attempts and 12,000
   output tokens per proposal. Expected total suite spend is documented as $10–$14, with $20
   recommended provisioning and a $25 billing alert.
+
+### Runtime sensitivity and source discovery audit
+
+- Added raw and infrastructure-error-excluded task/stress success rates to model comparisons.
+- Separated provider infrastructure errors from model protocol errors; malformed final output stays
+  in the model-failure denominator.
+- Added cross-model source metrics for success, deduplicated canonical failure signatures, and
+  severity-weighted unique discoveries.
+- TDD red gate: the comparison test failed because runtime sensitivity and source aggregation were
+  absent. Targeted green gate: `uv run pytest -q tests/unit/reporting/test_model_comparison.py`
+  passed.
+- Audited the GPT-5 runtime-status episode as `AgentProtocolError: malformed final output:
+  submit_final was not called`, not an infrastructure failure.
+- Final gates: Ruff format/check passed, strict mypy passed for 48 source files, and pytest passed
+  with 65 tests (2 credential-gated live tests deselected).

@@ -19,4 +19,4 @@ uv run evalforge compare \
   --output artifacts/live-audited/final-model-comparison
 ```
 
-The comparison includes model identity, task/full stress success, unique signatures, severity-weighted discoveries, failure-directed child count, tokens, provider calls, estimated cost, and provider runtime failures.
+The comparison includes model identity, task/full stress success, unique signatures, severity-weighted discoveries, failure-directed child count, tokens, provider calls, estimated cost, and agent runtime failures. It separates provider/infrastructure failures from model protocol failures: infrastructure-excluded rates remove only the former, while malformed tool or final-output behavior remains a model failure. Source-level discovery metrics pool episodes across compared models, deduplicate canonical signatures within each source, and count each signature once at its highest observed severity.
