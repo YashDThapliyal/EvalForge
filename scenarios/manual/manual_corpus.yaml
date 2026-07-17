@@ -1,7 +1,6 @@
 # Every entry expands deterministically to a complete, independently validated ScenarioSpec.
 # The compact manifest keeps the 50 curated variants reviewable without duplicating world boilerplate.
 manual_scenarios:
-  - {family: bad_deployment, variant: 0}
   - {family: bad_deployment, variant: 1}
   - {family: bad_deployment, variant: 2}
   - {family: bad_deployment, variant: 3}

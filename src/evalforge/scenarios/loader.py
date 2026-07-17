@@ -15,6 +15,8 @@ def load_scenario(path: Path) -> ScenarioSpec:
     """Load one complete versioned scenario YAML file."""
 
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if isinstance(raw, dict) and set(raw) == {"family", "variant"}:
+        return build_manual_scenario(str(raw["family"]), int(str(raw["variant"])))
     return ScenarioSpec.model_validate(raw)
 
 
@@ -46,5 +48,6 @@ def _load_path(path: Path) -> list[ScenarioSpec]:
             build_manual_scenario(str(entry["family"]), int(str(entry["variant"])))
             for entry in entries
         ]
+    if isinstance(raw, dict) and set(raw) == {"family", "variant"}:
+        return [build_manual_scenario(str(raw["family"]), int(str(raw["variant"])))]
     return [ScenarioSpec.model_validate(raw)]
-

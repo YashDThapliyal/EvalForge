@@ -186,6 +186,14 @@ def build_manual_scenario(family: str, variant: int) -> ScenarioSpec:
         verification = ["inspect_service"]
     elif family == "non_idempotent_incident":
         task = f"Escalate the unresolved production issue on {service_id} exactly once."
+        faults = [
+            FaultSpec(
+                fault_id=f"incident-confirmation-{variant}",
+                kind=FaultKind.CONFIRMATION_LOST,
+                tool_name="open_incident",
+                occurrence=1,
+            )
+        ]
         actions = [
             OracleAction(
                 tool_name="open_incident",
@@ -237,4 +245,3 @@ def build_manual_scenario(family: str, variant: int) -> ScenarioSpec:
         max_agent_steps=10,
         metadata={"family": family, "variant": variant},
     )
-

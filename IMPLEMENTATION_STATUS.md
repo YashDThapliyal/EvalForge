@@ -19,3 +19,9 @@ Work began 2026-07-17. Exact phase gates and final command results are recorded 
 - Red test: scenario tests failed during collection because scenario domain and loader modules did not exist.
 - Implemented versioned specs, explicit public views, YAML round-trips, exact/near fingerprints, common oracle validation, and a checked-in manifest of 50 curated variants across 10 required families.
 - Gate: `evalforge validate scenarios/manual` (50 valid), targeted tests (5 passed), full suite (14 passed), Ruff, and strict mypy — passed.
+
+## Phase 3 — agent harness and tracing
+
+- Red test: agent/execution tests failed during collection because the agent and episode packages did not exist.
+- Implemented public-only agent requests, oracle/scripted/replay agents, bounded visible-only tool access, structured parser/runtime outcomes, isolated episodes, and atomic complete artifacts.
+- Gate: targeted tests (8 passed), scripted CLI episode (2 calls), full suite (22 passed), Ruff, and strict mypy — passed.
