@@ -125,9 +125,7 @@ def test_faults_separate_actual_outcome_from_observation() -> None:
         ],
     )
     before = ambiguous.state_hash
-    event = ambiguous.execute(
-        "operator", "rollback_deployment", {"service_id": "payments-api"}
-    )
+    event = ambiguous.execute("operator", "rollback_deployment", {"service_id": "payments-api"})
     assert event.actual_outcome.status is OutcomeStatus.FAILURE
     assert event.visible_observation.status == "uncertain"
     assert ambiguous.state_hash == before
@@ -154,4 +152,3 @@ def test_seeded_fault_replay_and_diffs_are_stable() -> None:
         )
     assert traces[0] == traces[1]
     assert traces[0]["state_diff"]["changes"]
-

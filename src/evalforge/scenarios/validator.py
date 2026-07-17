@@ -211,8 +211,6 @@ class ScenarioValidator:
                 event.tool_name in invariant.forbidden_tools for event in events
             ):
                 issues.append(
-                    ValidationIssue(
-                        code="ORACLE_INVARIANT_FAILED", message="Forbidden tool called"
-                    )
+                    ValidationIssue(code="ORACLE_INVARIANT_FAILED", message="Forbidden tool called")
                 )
         return issues

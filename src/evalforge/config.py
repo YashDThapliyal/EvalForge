@@ -15,4 +15,3 @@ class ExperimentConfig(BaseModel):
     output_dir: str = "artifacts"
     random_proposer: str = "programmatic"
     failure_directed_proposer: str = "programmatic"
-

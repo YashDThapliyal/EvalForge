@@ -42,4 +42,3 @@ class FaultSpec(BaseModel):
             and self.occurrence == occurrence
             and all(arguments.get(key) == value for key, value in self.matching_arguments.items())
         )
-

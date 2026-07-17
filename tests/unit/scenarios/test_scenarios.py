@@ -78,4 +78,3 @@ def test_fingerprints_ignore_superficial_metadata_but_detect_structure() -> None
     assert near_fingerprint(first) == near_fingerprint(second)
     result = ScenarioValidator(existing_fingerprints={fingerprint(first)}).validate(second)
     assert "DUPLICATE_FINGERPRINT" in result.codes
-

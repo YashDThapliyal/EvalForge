@@ -17,4 +17,3 @@ class OracleAgent:
         for action in self.plan:
             tools.call(action.tool_name, action.arguments)
         return AgentFinal(status="resolved", summary="Oracle plan completed", claims=[])
-

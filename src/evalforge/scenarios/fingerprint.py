@@ -36,4 +36,3 @@ def near_fingerprint(scenario: ScenarioSpec) -> str:
         "invariants": [invariant.kind.value for invariant in scenario.invariants],
     }
     return hashlib.sha256(canonical_json(structure).encode()).hexdigest()
-

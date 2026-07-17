@@ -117,4 +117,3 @@ class ScenarioSpec(BaseModel):
             tools=tool_schemas(),
             max_agent_steps=self.max_agent_steps,
         )
-

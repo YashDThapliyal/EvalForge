@@ -39,4 +39,3 @@ def _walk_diff(before: JsonValue, after: JsonValue, path: str, changes: list[Sta
             changes.append(StateChange(path=path, before=before, after=after))
         return
     changes.append(StateChange(path=path, before=before, after=after))
-

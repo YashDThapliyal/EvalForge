@@ -12,4 +12,3 @@ def canonical_json(value: Any) -> str:
     if isinstance(value, BaseModel):
         value = value.model_dump(mode="json")
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-

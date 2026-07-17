@@ -66,6 +66,8 @@ class ScriptedBaselineAgent:
                 tools.call(
                     "rollback_deployment", {"service_id": service_id, "target_version": "v1"}
                 )
+            elif observation.message == "Deployment rolled back":
+                tools.call("inspect_service", {"service_id": service_id})
             return AgentFinal(
                 status="resolved",
                 summary=f"Rolled back {service_id}",

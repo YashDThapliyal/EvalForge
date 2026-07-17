@@ -7,6 +7,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from evalforge.agents.base import Agent, AgentFinal, AgentRequest, ToolRegistry
+from evalforge.domain.results import VerificationResult
 from evalforge.domain.scenario import ScenarioSpec
 from evalforge.domain.trace import ToolEvent
 from evalforge.domain.world import WorldState
@@ -14,6 +15,8 @@ from evalforge.execution.artifacts import atomic_write
 from evalforge.scenarios.loader import write_scenario
 from evalforge.serialization import canonical_json
 from evalforge.simulator.engine import Simulator
+from evalforge.verification.engine import verify_episode
+from evalforge.verification.taxonomy import FailureRecord, classify_failure
 
 
 class EpisodeResult(BaseModel):
@@ -30,6 +33,8 @@ class EpisodeResult(BaseModel):
     runtime_errors: list[str] = Field(default_factory=list)
     malformed_calls: int = 0
     raw_provider_messages: list[str] = Field(default_factory=list)
+    verification: VerificationResult | None = None
+    failure: FailureRecord | None = None
 
 
 def run_episode(
@@ -77,6 +82,8 @@ def run_episode(
         runtime_errors=errors,
         malformed_calls=registry.malformed_calls,
     )
+    result.verification = verify_episode(scenario, result)
+    result.failure = classify_failure(scenario, result, result.verification)
     if artifact_dir is not None:
         persist_episode(artifact_dir, scenario, result)
     return result
@@ -98,4 +105,7 @@ def persist_episode(path: Path, scenario: ScenarioSpec, result: EpisodeResult) -
         canonical_json(result.final) + "\n" if result.final is not None else "null\n",
     )
     atomic_write(path / "episode.json", canonical_json(result) + "\n")
-
+    if result.verification is not None:
+        atomic_write(path / "verification.json", canonical_json(result.verification) + "\n")
+    if result.failure is not None:
+        atomic_write(path / "failure.json", canonical_json(result.failure) + "\n")

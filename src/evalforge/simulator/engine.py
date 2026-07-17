@@ -49,9 +49,7 @@ class Simulator:
 
         return world_hash(world)
 
-    def execute(
-        self, actor_id: str, tool_name: str, arguments: dict[str, JsonValue]
-    ) -> ToolEvent:
+    def execute(self, actor_id: str, tool_name: str, arguments: dict[str, JsonValue]) -> ToolEvent:
         """Authorize, execute truth, transform observation, and record one event."""
 
         step = len(self.events) + 1
@@ -78,9 +76,7 @@ class Simulator:
             self._occurrences[tool_name] += 1
             occurrence = self._occurrences[tool_name]
             applied = [
-                fault
-                for fault in self.faults
-                if fault.matches(tool_name, arguments, occurrence)
+                fault for fault in self.faults if fault.matches(tool_name, arguments, occurrence)
             ]
             blocking = next(
                 (
@@ -103,9 +99,7 @@ class Simulator:
                     error_code=blocking.kind.value,
                 )
             else:
-                actual, side_effect_id = self._transitions[tool_name](
-                    actor_id, arguments, call_id
-                )
+                actual, side_effect_id = self._transitions[tool_name](actor_id, arguments, call_id)
         observation = self._visible_observation(actual, applied)
         after_hash = world_hash(self.world)
         event = ToolEvent(

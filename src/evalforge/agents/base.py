@@ -89,9 +89,7 @@ class ToolRegistry:
     def call(self, tool_name: str, arguments: object) -> ToolObservation:
         """Execute one well-formed call and expose only its visible observation."""
 
-        if not isinstance(arguments, dict) or not all(
-            isinstance(key, str) for key in arguments
-        ):
+        if not isinstance(arguments, dict) or not all(isinstance(key, str) for key in arguments):
             self.malformed_calls += 1
             return ToolObservation(
                 status="error", message="Malformed tool arguments: expected an object"
@@ -105,9 +103,7 @@ class ToolRegistry:
         if self._calls[signature] > self.max_repeated:
             self.repeated_call_limit_exceeded = True
             return ToolObservation(status="error", message="Repeated-call limit exceeded")
-        return self.simulator.execute(
-            self.actor_id, tool_name, json_arguments
-        ).visible_observation
+        return self.simulator.execute(self.actor_id, tool_name, json_arguments).visible_observation
 
 
 class Agent(Protocol):

@@ -39,6 +39,7 @@ def test_ordered_complete_trace_and_artifact_persistence(tmp_path: Path) -> None
     assert '"actual_outcome"' in trace and '"visible_observation"' in trace
     assert (tmp_path / "scenario.yaml").exists()
     assert (tmp_path / "public_request.json").exists()
+    assert (tmp_path / "verification.json").exists()
     assert "fault_plan" not in (tmp_path / "public_request.json").read_text(encoding="utf-8")
 
 
@@ -61,4 +62,3 @@ def test_budget_and_malformed_calls_become_structured_outcomes() -> None:
     malformed = run_episode(scenario, MalformedAgent())
     assert malformed.runtime_status == "malformed_tool_call"
     assert malformed.malformed_calls == 1
-

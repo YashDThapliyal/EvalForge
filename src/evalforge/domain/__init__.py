@@ -1,2 +1,1 @@
 """Core serialized domain models."""
-

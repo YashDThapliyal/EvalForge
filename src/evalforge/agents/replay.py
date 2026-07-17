@@ -19,4 +19,3 @@ class ReplayAgent:
         for call in self.calls:
             tools.call(call.tool_name, call.arguments)
         return self.final.model_copy(deep=True)
-

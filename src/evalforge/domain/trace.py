@@ -74,4 +74,3 @@ class ToolEvent(BaseModel):
     state_diff: StateDiff
     side_effect_id: str | None = None
     fault_ids_applied: list[str] = Field(default_factory=list)
-

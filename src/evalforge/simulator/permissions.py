@@ -25,4 +25,3 @@ def decide_permission(world: WorldState, actor_id: str, tool_name: str) -> Permi
         required=required.value,
         reason="Permission granted" if allowed else f"Actor lacks {required.value}",
     )
-

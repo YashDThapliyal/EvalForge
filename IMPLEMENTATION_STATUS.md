@@ -25,3 +25,9 @@ Work began 2026-07-17. Exact phase gates and final command results are recorded 
 - Red test: agent/execution tests failed during collection because the agent and episode packages did not exist.
 - Implemented public-only agent requests, oracle/scripted/replay agents, bounded visible-only tool access, structured parser/runtime outcomes, isolated episodes, and atomic complete artifacts.
 - Gate: targeted tests (8 passed), scripted CLI episode (2 calls), full suite (22 passed), Ruff, and strict mypy — passed.
+
+## Phase 4 — verification and failure taxonomy
+
+- Red test: verification tests failed during collection because verifier components did not exist.
+- Implemented independent outcome, invariant, trace-policy, claim-grounding, and runtime verifiers; all 17 required failure codes; stable behavioral signatures; and persisted verification/failure artifacts.
+- Gate: targeted tests (7 passed), full suite (29 passed), Ruff, and strict mypy — passed.
