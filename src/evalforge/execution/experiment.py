@@ -120,6 +120,9 @@ class ExperimentRunner:
             )
             + "\n",
         )
+        from evalforge.reporting.html import generate_html_report
+
+        generate_html_report(root)
         return ExperimentResult(
             experiment_id=experiment_id,
             artifact_dir=root,

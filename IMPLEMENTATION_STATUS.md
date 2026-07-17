@@ -43,3 +43,9 @@ Work began 2026-07-17. Exact phase gates and final command results are recorded 
 - Red test: experiment/metrics tests failed during collection because those packages did not exist.
 - Implemented deterministic resolved configs, equal 12/50 budgets, same-agent orchestration, own-run-only adaptive targeting, complete manifests, and all required raw metrics/discovery curves.
 - Gate: targeted tests (3 passed); quick experiment `evalforge-seed7-b12-f3a38fa735` completed 36 episodes; full suite (36 passed), Ruff, and strict mypy — passed.
+
+## Phase 7 — reports and failure inspection
+
+- Red test: report tests failed during collection because renderers and inspector did not exist.
+- Implemented artifact-only Markdown/HTML regeneration, escaped per-failure pages, three-source tables, discovery curves, lineage links, and exact-rule terminal inspection.
+- Gate: reporting/golden tests (5 passed); regenerated the quick report; inspected `failure_directed-008-fd_15_0000`; full suite (40 passed), Ruff, and strict mypy — passed.

@@ -1,0 +1,11 @@
+## Experiment configuration
+## Scenario generation and validation
+## Source comparison
+## Success rates
+## Unique failure discoveries
+## Severity breakdown
+## Discovery curves
+## Top failure modes
+## Validation rejection reasons
+## Scenario lineage summary
+## Limitations

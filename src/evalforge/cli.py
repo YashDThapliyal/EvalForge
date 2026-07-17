@@ -10,6 +10,8 @@ from evalforge.config import load_experiment_config
 from evalforge.execution.artifacts import atomic_write
 from evalforge.execution.episode import run_episode
 from evalforge.execution.experiment import ExperimentRunner
+from evalforge.reporting.html import generate_html_report
+from evalforge.reporting.inspect import render_failure_timeline
 from evalforge.scenarios.failure_directed import FailureDirectedScenarioGenerator
 from evalforge.scenarios.loader import load_scenario, load_scenarios, write_scenario
 from evalforge.scenarios.random_generator import ProgrammaticProposer, RandomScenarioGenerator
@@ -123,6 +125,26 @@ def experiment_command(
         f"Experiment {result.experiment_id} complete: {len(result.episode_ids)} episodes; "
         f"artifacts: {result.artifact_dir}"
     )
+
+
+@app.command("report")
+def report_command(
+    experiment: Annotated[Path, typer.Option("--experiment")],
+) -> None:
+    """Regenerate Markdown, HTML, and failure pages from saved artifacts."""
+
+    generate_html_report(experiment)
+    typer.echo(f"Regenerated {experiment / 'report.md'} and {experiment / 'report.html'}")
+
+
+@app.command("inspect")
+def inspect_command(
+    experiment: Annotated[Path, typer.Option("--experiment")],
+    episode: Annotated[str, typer.Option("--episode")],
+) -> None:
+    """Print a chronological failed-episode timeline and exact violated rules."""
+
+    typer.echo(render_failure_timeline(experiment, episode), nl=False)
 
 
 if __name__ == "__main__":
