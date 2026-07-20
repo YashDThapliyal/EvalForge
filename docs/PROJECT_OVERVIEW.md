@@ -10,9 +10,11 @@ Scenarios share one versioned schema and one validation pipeline. Manual scenari
 
 The audited experiment evaluated six real models—GPT-5.6 Sol, GPT-5, GPT-5 mini, Claude Opus 4.8, Claude Sonnet 5, and Claude Haiku 4.5—on 12 accepted scenarios from each source. That produced 216 episodes. Every episode retained provider/model identity, raw provider messages, tool trajectories, verifier findings, token usage, and estimated evaluated-agent cost.
 
-The strongest positive result was that executable verification exposed reliability gaps hidden by task-level success. Claude Sonnet 5, for example, completed task predicates in 58.3% of episodes but achieved only 30.6% full deterministic success after policy, claims, invariants, and runtime validity were included.
+The strongest positive result was that executable verification exposed reliability gaps hidden by task-level success. Claude Sonnet 5 and Claude Haiku 4.5, for example, each completed task predicates in 13.9 points more episodes than achieved full deterministic success once policy, claims, invariants, and runtime validity were included.
 
-The experiment also produced an important negative result. Random synthetic scenarios found the broadest failure set: 11 unique canonical signatures and a severity-weighted score of 41. Failure-directed scenarios were harder—the full success rate fell to 30.6%—but found only 6 unique signatures with a weighted score of 19. The honest interpretation is that adaptive generation concentrated pressure around known weaknesses and worked as targeted robustness/regression testing; it did not outperform random generation at broad discovery in this run.
+The experiment also produced an important negative result. Failure-directed scenarios were clearly the hardest, at 30.6% full success against 63.9% for random. But they did not trade that difficulty for breadth, and neither did random: 7 versus 6 unique canonical signatures and weighted scores of 25 versus 19. At one seed with no confidence intervals that difference is not a result. The honest interpretation is that adaptive generation concentrated pressure around known weaknesses and worked as targeted robustness/regression testing; whether it beats random generation at broad discovery is underpowered in this run rather than answered by it.
+
+An audit on 2026-07-20 corrected an earlier version of these figures; see the [correction note](RESULTS.md#correction-2026-07-20).
 
 This distinction is why EvalForge is useful. It can measure both whether an agent reached a desired state and whether it behaved safely and truthfully along the way. It also preserves enough evidence for a researcher or engineer to reproduce reports and inspect exact failures without rerunning paid models.
 

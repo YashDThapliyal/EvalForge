@@ -14,6 +14,18 @@ uv run evalforge validate scenarios/manual
 
 Default tests block socket connections. They use deterministic doubles under `tests/`; production commands cannot select those doubles.
 
+## Re-score saved episodes after a verifier change
+
+When the verifier changes, the saved episodes must be re-scored rather than re-run:
+
+```bash
+uv run python scripts/rescore_from_artifacts.py artifacts/model-suite/*/evalforge-seed7-b12-*
+```
+
+This recomputes verification, failure classification, and `metrics.json` from the episodes exactly as executed, and prints per-source before/after rates. It makes no provider calls.
+
+Re-running `evalforge experiment` would **not** be equivalent: corrected pass/fail signal feeds failure-directed lineage, so different descendant scenarios would be generated and new paid episodes required. That produces a different experiment, not a correction of an existing one. Regenerate reports afterwards with the commands below.
+
 ## Rebuild reports without model calls
 
 If the full `artifacts/model-suite/` directory is available, regenerate each experiment report with:

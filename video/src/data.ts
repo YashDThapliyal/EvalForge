@@ -15,7 +15,7 @@ export const MODELS: ModelRow[] = [
   { name: "GPT-5", task: 63.9, verified: 58.3, signatures: 5, cost: "$0.81" },
   { name: "GPT-5 mini", task: 58.3, verified: 52.8, signatures: 9, cost: "$0.10" },
   { name: "Claude Opus 4.8", task: 58.3, verified: 58.3, signatures: 2, cost: "$3.95" },
-  { name: "Claude Sonnet 5", task: 58.3, verified: 30.6, signatures: 9, cost: "$1.90", highlight: "gap" },
+  { name: "Claude Sonnet 5", task: 58.3, verified: 44.4, signatures: 4, cost: "$1.90", highlight: "gap" },
   { name: "Claude Haiku 4.5", task: 63.9, verified: 50.0, signatures: 9, cost: "$0.61" },
 ];
 

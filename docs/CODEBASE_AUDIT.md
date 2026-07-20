@@ -69,7 +69,7 @@ The largest modules are the simulator engine, experiment runner, comparison repo
 
 ## 7. Scenario-source comparison
 
-Across 72 episodes per source, manual scenarios achieved 81.9% full success with 8 unique signatures and weighted score 26; random achieved 58.3%, 11, and 41; failure-directed achieved 30.6%, 6, and 19. Signatures are deduplicated across models within each source and counted once at their highest observed severity.
+Across 72 episodes per source, manual scenarios achieved 83.3% full success with 7 unique signatures and weighted score 22; random achieved 63.9%, 7, and 25; failure-directed achieved 30.6%, 6, and 19. Signatures are deduplicated across models within each source and counted once at their highest observed severity. These figures reflect the 2026-07-20 verifier correction recorded in [RESULTS.md](RESULTS.md#correction-2026-07-20).
 
 ## 8. Live-model experiment summary
 
@@ -80,9 +80,9 @@ Detailed rates and costs are in [RESULTS.md](RESULTS.md) and the curated [compar
 ## 9. What the results establish
 
 - Executable verification can expose policy, grounding, invariant, and runtime failures that task predicates alone miss.
-- In this experiment, random synthesis explored the broadest distinct and severity-weighted failure set.
 - Failure-directed scenarios were hardest and repeatedly exercised observed weaknesses.
-- Sonnet 5 had the largest observed task/full reliability gap.
+- Random and failure-directed synthesis were effectively tied on discovery breadth (7 versus 6 signatures, 25 versus 19 weighted); this run does not separate them.
+- Sonnet 5 and Haiku 4.5 shared the largest observed task/full reliability gap, both 13.9 points.
 - GPT-5's malformed final response was a model protocol failure; infrastructure failures were zero.
 
 ## 10. What the results do not establish

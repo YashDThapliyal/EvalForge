@@ -51,7 +51,7 @@ export const S7Results: React.FC<{ durationInFrames: number }> = ({
             state.
           </Read>
           <Read frame={frame} delay={182} tone="fail">
-            <b>Claude Sonnet 5 — 58.3% task, 30.6% verified:</b> a 28-point gap. “Task done”{" "}
+            <b>Claude Sonnet 5 — 58.3% task, 44.4% verified:</b> a 14-point gap. “Task done”{" "}
             <Hi tone="fail">overstated</Hi> reliability — the “but did it?” gap, quantified.
           </Read>
         </div>

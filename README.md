@@ -179,10 +179,12 @@ EvalForge evaluated six live models on 12 accepted scenarios from each source:
 | GPT-5 | 63.9% | 58.3% | 5 | $0.81 |
 | GPT-5 mini | 58.3% | 52.8% | 9 | $0.10 |
 | Claude Opus 4.8 | 58.3% | 58.3% | 2 | $3.95 |
-| Claude Sonnet 5 | 58.3% | 30.6% | 9 | $1.90 |
+| Claude Sonnet 5 | 58.3% | 44.4% | 4 | $1.90 |
 | Claude Haiku 4.5 | 63.9% | 50.0% | 9 | $0.61 |
 
-The clearest task-versus-reliability gap was Claude Sonnet 5: it satisfied task outcomes in 58.3% of episodes, but only 30.6% passed every deterministic verification dimension.
+The clearest task-versus-reliability gaps were Claude Sonnet 5 and Claude Haiku 4.5, both 13.9 points: each satisfied task outcomes in more episodes than passed every deterministic verification dimension.
+
+> **Corrected 2026-07-20.** Sonnet 5 was previously published at 30.6% full verified success. An audit traced that to a verifier defect that graded the agent's `unresolved_uncertainty` claim as a checkable fact, penalising volunteered epistemic caution. The bug affected only models that made that claim, and Sonnet 5 made 10 of the suite's 19. It is fixed and the saved episodes were re-scored offline. See [the correction note](docs/RESULTS.md#correction-2026-07-20).
 
 These numbers describe this simulator, scenario budget, seed, prompts, tools, and saved run. They are **not** a general model leaderboard or a statistical-significance claim.
 
@@ -190,15 +192,15 @@ These numbers describe this simulator, scenario budget, seed, prompts, tools, an
 
 | Source | Full verified success | Unique signatures | Severity-weighted discoveries |
 |---|---:|---:|---:|
-| Manual | 81.9% | 8 | 26 |
-| Random synthetic | 58.3% | 11 | 41 |
+| Manual | 83.3% | 7 | 22 |
+| Random synthetic | 63.9% | 7 | 25 |
 | Failure-directed | 30.6% | 6 | 19 |
 
 The result is useful precisely because it was not uniformly positive:
 
-- **Random synthetic tests explored most broadly**, discovering the largest distinct and severity-weighted failure set.
-- **Failure-directed tests were hardest**, but concentrated on fewer behaviors.
-- The current adaptive generator is best framed as targeted robustness or regression testing—not as superior broad failure discovery.
+- **Failure-directed tests were clearly hardest**, at roughly half the success rate of random ones.
+- **Neither source won on discovery breadth.** Random and failure-directed sit at 7 versus 6 unique signatures and 25 versus 19 weighted — a difference far too small to call at one seed with no confidence intervals.
+- The current adaptive generator is best framed as targeted robustness or regression testing. Whether it beats random generation at broad discovery is **unresolved by this run**, not answered by it.
 
 GPT-5 also produced one malformed final response by failing to call `submit_final`. The provider request completed, so EvalForge correctly counted it as a model protocol failure rather than infrastructure failure. Excluding infrastructure errors changes none of the rates because the audited run had zero.
 
