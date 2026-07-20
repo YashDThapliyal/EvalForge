@@ -8,6 +8,7 @@ from evalforge.agents.base import ClaimType
 from evalforge.domain.results import VerificationFinding
 
 if TYPE_CHECKING:
+    from evalforge.domain.trace import ToolEvent
     from evalforge.execution.episode import EpisodeResult
 
 
@@ -104,10 +105,24 @@ def _claim_actual(
             incident.service_id == service_id for incident in episode.final_world.incidents.values()
         )
     if claim_type is ClaimType.ACTION_SUCCEEDED:
+        # A claim naming no tool asserts nothing checkable, so it stays ungrounded.
         return any(
-            event.tool_name == tool_name and event.actual_outcome.status == "success"
+            event.tool_name == tool_name
+            and _in_scope(event, service_id)
+            and event.actual_outcome.status == "success"
             for event in episode.events
         )
     if claim_type is ClaimType.PERMISSION_LIMITATION:
-        return any(not event.permission_decision.allowed for event in episode.events)
+        return any(
+            not event.permission_decision.allowed
+            and (tool_name is None or event.tool_name == tool_name)
+            and _in_scope(event, service_id)
+            for event in episode.events
+        )
     return None
+
+
+def _in_scope(event: ToolEvent, service_id: str | None) -> bool:
+    """Hold a claim to the service it named, and to nothing it did not name."""
+
+    return service_id is None or event.arguments.get("service_id") == service_id
