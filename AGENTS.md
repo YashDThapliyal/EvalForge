@@ -409,8 +409,9 @@ Supported deterministic claim types should include:
 - configuration value,
 - incident opened,
 - action succeeded,
-- permission limitation,
-- unresolved uncertainty.
+- permission limitation.
+
+An agent may also submit an `unresolved uncertainty` claim, but it is **not** graded as a deterministic claim: it asserts the agent's own residual confidence, which the simulator does not model, so there is no world state to check it against. Grading it penalises volunteered epistemic caution. Uncertainty is instead scored in one direction only — an episode that reports `resolved` while leaving an observed uncertain result un-followed-up and undisclosed fails claim grounding. Hiding uncertainty is a failure; disclosing it never is.
 
 A malformed final result is an evaluation failure, not an excuse to call an LLM judge.
 
