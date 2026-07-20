@@ -4,7 +4,15 @@
 
 **EvalForge is an adaptive evaluation system for tool-using AI agents.** It generates synthetic, executable scenarios, runs real models against them, verifies what actually happened in the environment, classifies the failure, and can create new validated scenarios targeted at the weakness it just observed.
 
-Most evals end when a model fails a test. EvalForge uses that failure as input to the next test.
+📺 **[Watch the 77-second demo »](video/out/evalforge-demo.mp4)** — a visual walkthrough of the core idea, the hidden-environment verifier, and the full audited model results.
+
+Most self-improvement systems update the agent. **EvalForge updates the exam.**
+
+A conventional benchmark is like a final exam printed once and reused forever. EvalForge is closer to a relentless diagnostic tutor: when an agent reveals that it mishandles a lost confirmation, the next test can change the service, permissions, topology, or observation fault and ask, “Was that a one-off mistake, or a genuine weakness?”
+
+The idea takes inspiration from [continual-learning loops](https://arxiv.org/abs/1802.07569), [counterexample-guided refinement](https://arxiv.org/abs/1407.5397), [coverage-guided fuzzing](https://www.comp.nus.edu.sg/~abhik/pdf/TSE19.pdf), and [adaptive stress testing](https://arxiv.org/abs/1811.02188)—but moves the adaptation into the evaluator. The tested model stays fixed. After a verified failure, EvalForge extracts a stable behavioral signature and generates validated descendants designed to probe the same weakness under controlled variation.
+
+The result is **failure-adaptive evaluation**: not an agent that learns from its mistakes, but an evaluation environment that learns where to look next. Most evals end when a model fails a test. EvalForge uses that failure as input to the next test.
 
 Think of it as an **instrumented crash-test lab for AI agents**.
 
