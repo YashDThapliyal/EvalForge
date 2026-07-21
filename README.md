@@ -248,3 +248,7 @@ See [LIMITATIONS.md](docs/LIMITATIONS.md) for the complete assessment.
 7. **Explore RL translation** — verifier dimensions could become reward components, though RL training is future work, not part of this system.
 
 For a short introduction read the [project overview](docs/PROJECT_OVERVIEW.md); for the full evidence-backed assessment read the [codebase audit](docs/CODEBASE_AUDIT.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -13,7 +13,7 @@ The implementation is compact and mostly faithful to its live-only contract. The
 
 The core simulator, validation, live adapters, experiment runner, deterministic verification, reporting, and CLI inspection paths are implemented. The audited experiment contains 216 genuine live-model episodes and can be summarized or re-rendered without provider calls.
 
-The repository is ready for private technical review. Public redistribution remains a governance decision because no license file is present. The final validation evidence is recorded in [the release checklist](RELEASE_CHECKLIST.md) and `IMPLEMENTATION_STATUS.md`.
+The repository is ready for public release under the MIT license (see `LICENSE`). The final validation evidence is recorded in [the release checklist](RELEASE_CHECKLIST.md) and `IMPLEMENTATION_STATUS.md`.
 
 ## 3. What EvalForge does
 

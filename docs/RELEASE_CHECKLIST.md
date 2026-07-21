@@ -47,7 +47,7 @@ Status is recorded from the final audit pass. Items are checked only after direc
 - [x] Required command exceptions reconciled with the live-only amendment
 - [x] Git diff and whitespace check
 - [x] Clean worktree after final commit
-- [ ] Owner selects a license before public redistribution
+- [x] Owner selected a license before public redistribution (MIT, see `LICENSE`)
 
 The legacy `evalforge demo --seed 7` gate exits 2 because the live-only amendment deliberately
 removed the demo command. The paid `configs/quick.yaml` experiment was not rerun during this
