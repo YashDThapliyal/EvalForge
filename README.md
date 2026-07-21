@@ -12,14 +12,14 @@ Most agent benchmarks ask *"did it finish the task?"* EvalForge also asks *"and 
 
 Six live models, 216 episodes, $8.32 total. **Task success** checks the requested end state. **Verified success** additionally requires policy compliance, grounded claims, preserved invariants, and valid runtime behavior.
 
-| Model | Task success | Verified success | Gap | Unique failure signatures | Cost |
-|---|---:|---:|---:|---:|---:|
-| GPT-5.6 Sol | 91.7% | 91.7% | — | 2 | $0.95 |
-| GPT-5 | 63.9% | 58.3% | 5.6 | 5 | $0.81 |
-| Claude Opus 4.8 | 58.3% | 58.3% | — | 2 | $3.95 |
-| GPT-5 mini | 58.3% | 52.8% | 5.5 | 9 | $0.10 |
-| Claude Haiku 4.5 | 63.9% | 50.0% | 13.9 | 9 | $0.61 |
-| Claude Sonnet 5 | 58.3% | 44.4% | 13.9 | 4 | $1.90 |
+| Model | Task success | Verified success | Gap | Unique failure signatures |
+|---|---:|---:|---:|---:|
+| GPT-5.6 Sol | 91.7% | 91.7% | — | 2 |
+| GPT-5 | 63.9% | 58.3% | 5.6 | 5 |
+| Claude Opus 4.8 | 58.3% | 58.3% | — | 2 |
+| GPT-5 mini | 58.3% | 52.8% | 5.5 | 9 |
+| Claude Haiku 4.5 | 63.9% | 50.0% | 13.9 | 9 |
+| Claude Sonnet 5 | 58.3% | 44.4% | 13.9 | 4 |
 
 **That gap column is the whole point.** Two models can post identical task scores and be meaningfully different once you check the work. A conventional benchmark reports only the first number and calls it reliability.
 
