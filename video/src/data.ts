@@ -6,17 +6,16 @@ export type ModelRow = {
   task: number; // task success %
   verified: number; // full verified success %
   signatures: number; // unique failure signatures
-  cost: string; // tracked cost, USD
   highlight?: "win" | "gap";
 };
 
 export const MODELS: ModelRow[] = [
-  { name: "GPT-5.6 Sol", task: 91.7, verified: 91.7, signatures: 2, cost: "$0.95", highlight: "win" },
-  { name: "GPT-5", task: 63.9, verified: 58.3, signatures: 5, cost: "$0.81" },
-  { name: "GPT-5 mini", task: 58.3, verified: 52.8, signatures: 9, cost: "$0.10" },
-  { name: "Claude Opus 4.8", task: 58.3, verified: 58.3, signatures: 2, cost: "$3.95" },
-  { name: "Claude Sonnet 5", task: 58.3, verified: 44.4, signatures: 4, cost: "$1.90", highlight: "gap" },
-  { name: "Claude Haiku 4.5", task: 63.9, verified: 50.0, signatures: 9, cost: "$0.61" },
+  { name: "GPT-5.6 Sol", task: 91.7, verified: 91.7, signatures: 2, highlight: "win" },
+  { name: "GPT-5", task: 63.9, verified: 58.3, signatures: 5 },
+  { name: "GPT-5 mini", task: 58.3, verified: 52.8, signatures: 9 },
+  { name: "Claude Opus 4.8", task: 58.3, verified: 58.3, signatures: 2 },
+  { name: "Claude Sonnet 5", task: 58.3, verified: 44.4, signatures: 4, highlight: "gap" },
+  { name: "Claude Haiku 4.5", task: 63.9, verified: 50.0, signatures: 9 },
 ];
 
 // Run-scope credibility footer.
@@ -25,7 +24,6 @@ export const RUN_SCOPE = {
   episodes: 216,
   perSource: 72,
   seed: 7,
-  totalCost: "$8.32",
 };
 
 // The five independent verifier dimensions checked on the hero example.
