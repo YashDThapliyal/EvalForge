@@ -6,7 +6,7 @@
 
 Most agent benchmarks ask *"did it finish the task?"* EvalForge also asks *"and did it actually happen the way the agent said?"* — verified against executable ground truth, with no LLM judge anywhere.
 
-📺 **[Watch the 77-second demo »](video/out/evalforge-demo.mp4)**
+📺 **[Watch the demo »](https://youtu.be/YAVRJJiykAE)**
 
 ## The result in one table
 
